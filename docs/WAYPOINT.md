@@ -36,11 +36,11 @@ The core rule driving all decisions: **DXF, STL, STEP, GLB, SVG, and CSV are exp
 
 - Internal source of truth is a typed Pydantic v2 semantic model (`ResolvedProject`).
 - Coordinate system: X = width, Y = height, Z = depth; cabinet origin at back-left-bottom.
-- Carcass: frameless construction, top/bottom panels between side panels.
 - Module split: `main_plus_top` mode — split when body height exceeds max board length.
 - Cut list dimensions come from `Part.length / width / thickness` manufacturing fields, never from mesh bounding boxes.
-- Technology stack: Python 3.12+, FastAPI, Pydantic v2, PyYAML, trimesh, NumPy, Three.js.
+- Technology stack: Python 3.12+, FastAPI, Pydantic v2, PyYAML, trimesh, NumPy, Three.js; uv for virtual-env and dependency management.
 - Linting: black + flake8 (no ruff).
+- Storage root is read from the `CABSCRIPT_ROOT` env var (loaded via `python-dotenv`); default is `<repo root>/data`. Backend storage integration deferred.
 
 ## Current Constraints
 
@@ -52,8 +52,7 @@ The core rule driving all decisions: **DXF, STL, STEP, GLB, SVG, and CSV are exp
 
 ## Open Questions
 
-- Where will the `cabinetry/` package root live relative to the repo root? (plan shows `cabinetry/` as a top-level directory)
-- Is there a preferred virtual-environment or dependency management tool (uv, pip, poetry)?
+- None currently.
 
 ## Next
 

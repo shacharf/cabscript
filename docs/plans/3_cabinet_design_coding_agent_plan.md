@@ -30,6 +30,8 @@ Use:
 
 Recommended packages:
 
+Use **uv** for virtual-environment and dependency management (`uv sync`, `uv run`).
+
 ```toml
 [project]
 requires-python = ">=3.12"
@@ -42,6 +44,7 @@ dependencies = [
   "numpy",
   "jinja2",
   "python-multipart",
+  "python-dotenv",
 ]
 
 [project.optional-dependencies]
@@ -55,6 +58,34 @@ future_dxf = ["ezdxf"]
 future_nesting = ["rectpack"]
 ```
 
+## 2.5 Environment configuration
+
+Use `python-dotenv` to load environment variables from a `.env` file at startup.
+
+Create a `.env` file at the repo root (committed with safe defaults; real overrides go in `.env.local` which is gitignored):
+
+```dotenv
+# Root directory for runtime data (generated files, future backend storage).
+# Defaults to <repo root>/data if unset.
+CABSCRIPT_ROOT=
+```
+
+In `app/main.py` (or a dedicated `config.py`), resolve the storage root:
+
+```python
+import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv()
+
+REPO_ROOT = Path(__file__).resolve().parents[3]  # adjust depth to match package layout
+CABSCRIPT_ROOT = Path(os.environ.get("CABSCRIPT_ROOT") or REPO_ROOT / "data")
+CABSCRIPT_ROOT.mkdir(parents=True, exist_ok=True)
+```
+
+Backend storage integration (database, object store, etc.) is deferred. For now all generated artefacts are either returned in-memory over HTTP or written under `CABSCRIPT_ROOT`.
+
 ## 3. Repository structure
 
 Create this structure:
@@ -63,6 +94,9 @@ Create this structure:
 cabinetry/
   pyproject.toml
   README.md
+  .env               safe defaults (committed)
+  .env.local         local overrides (gitignored)
+  data/              default CABSCRIPT_ROOT output directory (gitignored)
 
   src/
     cabinetry/
