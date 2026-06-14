@@ -23,6 +23,12 @@ interface HitRegion {
   h: number;
 }
 
+interface Transform {
+  panX: number;
+  panY: number;
+  zoom: number;
+}
+
 function partXY(part: Part) {
   const sz: Record<string, number> = { x: 0, y: 0, z: 0 };
   sz[part.axes.length_axis] += part.length;
@@ -35,7 +41,9 @@ function drawProject(
   canvas: HTMLCanvasElement,
   project: ResolvedProject,
   doorsVisible: boolean,
+  showDimensions: boolean,
   hitRegions: HitRegion[],
+  transform: Transform,
 ) {
   const container = canvas.parentElement!;
   canvas.width = container.clientWidth || canvas.offsetWidth;
@@ -47,7 +55,7 @@ function drawProject(
   ctx.fillStyle = BG;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  const PAD_LEFT = 60, PAD_RIGHT = 30, PAD_TOP = 30, PAD_BOTTOM = 50;
+  const PAD_LEFT = 60, PAD_RIGHT = showDimensions ? 60 : 30, PAD_TOP = 30, PAD_BOTTOM = 50;
   const drawW = canvas.width - PAD_LEFT - PAD_RIGHT;
   const drawH = canvas.height - PAD_TOP - PAD_BOTTOM;
 
@@ -59,6 +67,10 @@ function drawProject(
   const cy = (y: number) => offY + (project.height - y) * scale;
   const cs = (v: number) => v * scale;
 
+  ctx.save();
+  ctx.translate(transform.panX, transform.panY);
+  ctx.scale(transform.zoom, transform.zoom);
+
   // Cabinet interior
   ctx.fillStyle = '#0d1525';
   ctx.fillRect(cx(0), cy(project.height), cs(project.width), cs(project.height));
@@ -69,6 +81,29 @@ function drawProject(
     ctx.fillStyle = BAY_FILL[bay.function.kind] ?? 'rgba(150,160,180,0.12)';
     ctx.fillRect(bx, by, bw, bh);
     hitRegions.push({ kind: 'bay', id: bay.id, x: bx, y: by, w: bw, h: bh });
+
+    // Drawer divisions
+    if (bay.function.kind === 'drawers') {
+      const count = (bay.function.params.count as number) ?? 3;
+      const drawerH = bh / count;
+      ctx.strokeStyle = 'rgba(180,130,240,0.5)';
+      ctx.lineWidth = 1;
+      for (let i = 1; i < count; i++) {
+        const ly = by + i * drawerH;
+        ctx.beginPath();
+        ctx.moveTo(bx + 2, ly);
+        ctx.lineTo(bx + bw - 2, ly);
+        ctx.stroke();
+      }
+      // Handle indicators
+      const handleW = Math.min(40, bw * 0.35);
+      const handleH = Math.max(2, drawerH * 0.1);
+      ctx.fillStyle = 'rgba(180,130,240,0.4)';
+      for (let i = 0; i < count; i++) {
+        const centerY = by + (i + 0.5) * drawerH;
+        ctx.fillRect(bx + (bw - handleW) / 2, centerY - handleH / 2, handleW, handleH);
+      }
+    }
   }
 
   // Structural panels
@@ -156,7 +191,40 @@ function drawProject(
     }
   }
 
-  // Dimensions
+  // Per-bay dimension labels (right side, outside cabinet)
+  if (showDimensions) {
+    const labelX = cx(project.width) + 8;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.font = '9px system-ui';
+    ctx.fillStyle = 'rgba(100,180,255,0.75)';
+    for (const bay of project.bays) {
+      const midY = cy(bay.y + bay.height / 2);
+      const topY = cy(bay.y + bay.height);
+      const botY = cy(bay.y);
+      // Tick marks at bay top and bottom
+      ctx.strokeStyle = 'rgba(100,180,255,0.3)';
+      ctx.lineWidth = 0.5;
+      ctx.beginPath();
+      ctx.moveTo(cx(project.width) + 2, topY);
+      ctx.lineTo(labelX + 28, topY);
+      ctx.moveTo(cx(project.width) + 2, botY);
+      ctx.lineTo(labelX + 28, botY);
+      ctx.moveTo(labelX + 4, topY);
+      ctx.lineTo(labelX + 4, botY);
+      ctx.stroke();
+
+      if (bay.function.kind === 'drawers') {
+        const count = (bay.function.params.count as number) ?? 3;
+        const dh = Math.round(bay.height / count);
+        ctx.fillText(`${dh}×${count}`, labelX + 8, midY);
+      } else {
+        ctx.fillText(`${Math.round(bay.height)}`, labelX + 8, midY);
+      }
+    }
+  }
+
+  // Overall dimensions
   ctx.strokeStyle = 'rgba(140,160,200,0.6)';
   ctx.fillStyle = 'rgba(160,180,220,0.8)';
   ctx.lineWidth = 1;
@@ -195,6 +263,8 @@ function drawProject(
     ctx.stroke();
   }
   ctx.setLineDash([]);
+
+  ctx.restore(); // pop pan/zoom transform
 }
 
 function drawEmpty(canvas: HTMLCanvasElement) {
@@ -214,63 +284,124 @@ function drawEmpty(canvas: HTMLCanvasElement) {
 export default function View2d() {
   const project = useStore((s) => s.project);
   const doorsVisible = useStore((s) => s.doorsVisible);
+  const showDimensions = useStore((s) => s.showDimensions);
   const selectBay = useStore((s) => s.selectBay);
   const selectPart = useStore((s) => s.selectPart);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const hitRegionsRef = useRef<HitRegion[]>([]);
+  const transformRef = useRef<Transform>({ panX: 0, panY: 0, zoom: 1 });
+  const redrawRef = useRef<() => void>(() => {});
 
   const redraw = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     if (project) {
-      drawProject(canvas, project, doorsVisible, hitRegionsRef.current);
+      drawProject(canvas, project, doorsVisible, showDimensions, hitRegionsRef.current, transformRef.current);
     } else {
       drawEmpty(canvas);
     }
-  }, [project, doorsVisible]);
+  }, [project, doorsVisible, showDimensions]);
 
-  useEffect(() => {
-    redraw();
-  }, [redraw]);
+  // Keep ref in sync with latest closure
+  useEffect(() => { redrawRef.current = redraw; }, [redraw]);
 
+  // Redraw on dependency changes
+  useEffect(() => { redraw(); }, [redraw]);
+
+  // ResizeObserver — set up once
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
-    const observer = new ResizeObserver(() => requestAnimationFrame(redraw));
+    const observer = new ResizeObserver(() => requestAnimationFrame(() => redrawRef.current()));
     observer.observe(container);
     return () => observer.disconnect();
-  }, [redraw]);
+  }, []);
 
-  function handleClick(e: React.MouseEvent<HTMLCanvasElement>) {
+  // Wheel zoom — set up once, reads from refs
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    function onWheel(e: WheelEvent) {
+      e.preventDefault();
+      const rect = canvas!.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      const { panX, panY, zoom } = transformRef.current;
+      const factor = e.deltaY > 0 ? 0.85 : 1 / 0.85;
+      const newZoom = Math.max(0.15, Math.min(6, zoom * factor));
+      transformRef.current = {
+        panX: mx - (mx - panX) * (newZoom / zoom),
+        panY: my - (my - panY) * (newZoom / zoom),
+        zoom: newZoom,
+      };
+      redrawRef.current();
+    }
+    canvas.addEventListener('wheel', onWheel, { passive: false });
+    return () => canvas.removeEventListener('wheel', onWheel);
+  }, []);
+
+  function handleClickAt(clientX: number, clientY: number) {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
-    const mx = e.clientX - rect.left;
-    const my = e.clientY - rect.top;
+    const mx = clientX - rect.left;
+    const my = clientY - rect.top;
+    const { panX, panY, zoom } = transformRef.current;
+    const tx = (mx - panX) / zoom;
+    const ty = (my - panY) / zoom;
 
-    // Iterate in reverse (topmost drawn item wins)
     for (let i = hitRegionsRef.current.length - 1; i >= 0; i--) {
       const r = hitRegionsRef.current[i]!;
-      if (mx >= r.x && mx <= r.x + r.w && my >= r.y && my <= r.y + r.h) {
-        if (r.kind === 'bay') {
-          selectBay(r.id);
-        } else {
-          selectPart(r.id);
-        }
+      if (tx >= r.x && tx <= r.x + r.w && ty >= r.y && ty <= r.y + r.h) {
+        if (r.kind === 'bay') selectBay(r.id);
+        else selectPart(r.id);
         return;
       }
     }
-    // Clicked empty space — deselect
     selectBay(null);
+  }
+
+  function handleMouseDown(e: React.MouseEvent<HTMLCanvasElement>) {
+    if (e.button !== 0) return;
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const { panX, panY } = transformRef.current;
+    let moved = false;
+
+    function onMove(ev: MouseEvent) {
+      const dx = ev.clientX - startX;
+      const dy = ev.clientY - startY;
+      if (!moved && Math.abs(dx) + Math.abs(dy) < 4) return;
+      moved = true;
+      if (canvasRef.current) canvasRef.current.style.cursor = 'grabbing';
+      transformRef.current = { ...transformRef.current, panX: panX + dx, panY: panY + dy };
+      redrawRef.current();
+    }
+
+    function onUp(ev: MouseEvent) {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      if (canvasRef.current) canvasRef.current.style.cursor = 'crosshair';
+      if (!moved) handleClickAt(ev.clientX, ev.clientY);
+    }
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }
+
+  function handleDoubleClick() {
+    transformRef.current = { panX: 0, panY: 0, zoom: 1 };
+    redrawRef.current();
   }
 
   return (
     <div ref={containerRef} style={{ width: '100%', height: '100%', position: 'relative' }}>
       <canvas
         ref={canvasRef}
-        onClick={handleClick}
+        onMouseDown={handleMouseDown}
+        onDoubleClick={handleDoubleClick}
         style={{ width: '100%', height: '100%', display: 'block', cursor: 'crosshair' }}
       />
     </div>

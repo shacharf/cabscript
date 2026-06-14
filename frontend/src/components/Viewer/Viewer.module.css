@@ -27,6 +27,12 @@
   border-color: #644 !important;
 }
 
+.dimsActive {
+  background: #1a3050 !important;
+  color: #6aafff !important;
+  border-color: #2a5080 !important;
+}
+
 .viewport {
   flex: 1;
   position: relative;

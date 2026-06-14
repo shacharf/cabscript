@@ -70,9 +70,9 @@ cp .env .env.local
 Click **New Project** to start with the default closet template, or **Open Project** to load a `.yaml` file.
 
 In the main editor:
-- **DSL editor (left)** — edit the YAML design; the app auto-compiles 600 ms after you stop typing
-- **Front view / 3D (center)** — click the tab to switch views; click a bay in the front view to inspect it
-- **Properties (right)** — change material, standard, and finish colors; selected element details appear here
+- **DSL editor (left)** — edit the YAML design; the app auto-compiles 600 ms after you stop typing; context-aware autocomplete suggests valid values for each key
+- **Front view / 3D (center)** — click the tab to switch views; drag to pan, scroll to zoom, double-click to reset view; click a bay to inspect it; use **Dims** to toggle per-bay height labels; use **Hide Doors** to see the interior
+- **Properties (right)** — change material, standard, and finish colors; click a drawer bay to edit its count directly; drag the panel edges to resize columns (widths are remembered)
 - **Messages / Cut List (bottom)** — compile warnings and the full cut list
 
 ### Example DSL

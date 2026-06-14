@@ -14,12 +14,10 @@
 }
 
 .left {
-  width: 380px;
-  min-width: 260px;
+  min-width: 220px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid var(--border);
   background: var(--bg-surface);
   overflow: hidden;
 }
@@ -33,14 +31,33 @@
 }
 
 .right {
-  width: 280px;
-  min-width: 220px;
+  min-width: 180px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  border-left: 1px solid var(--border);
   background: var(--bg-surface);
   overflow: hidden;
+}
+
+.resizeHandle {
+  width: 4px;
+  flex-shrink: 0;
+  cursor: col-resize;
+  background: var(--border);
+  transition: background 0.15s;
+  position: relative;
+}
+
+/* Widen the hit target without changing visual width */
+.resizeHandle::before {
+  content: '';
+  position: absolute;
+  inset: 0 -4px;
+}
+
+.resizeHandle:hover,
+.resizeHandle:active {
+  background: var(--accent, #3a6ef6);
 }
 
 .bottom {

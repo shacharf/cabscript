@@ -1,4 +1,5 @@
 import { useStore } from '../../store/useStore';
+import type { ResolvedBay } from '../../types/cabinet';
 
 export default function SelectedProperties() {
   const project = useStore((s) => s.project);
@@ -26,9 +27,13 @@ export default function SelectedProperties() {
         <Row label="Function" value={bay.function.kind} />
         <Row label="Size" value={`${Math.round(bay.width)} × ${Math.round(bay.height)} mm`} />
         <Row label="Module" value={bay.module_id} />
-        {Object.entries(bay.function.params).map(([k, v]) => (
-          <Row key={k} label={k} value={String(v)} />
-        ))}
+        {bay.function.kind === 'drawers' ? (
+          <DrawerCountField bay={bay} />
+        ) : (
+          Object.entries(bay.function.params).map(([k, v]) => (
+            <Row key={k} label={k} value={String(v)} />
+          ))
+        )}
       </div>
     );
   }
@@ -53,6 +58,38 @@ export default function SelectedProperties() {
   }
 
   return null;
+}
+
+function DrawerCountField({ bay }: { bay: ResolvedBay }) {
+  const dslText = useStore((s) => s.dslText);
+  const setDslText = useStore((s) => s.setDslText);
+  const count = (bay.function.params.count as number) ?? 3;
+  const moduleId = bay.module_id;
+
+  function handleChange(val: string) {
+    const n = parseInt(val, 10);
+    if (isNaN(n) || n < 1 || n > 20) return;
+    const escaped = moduleId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const updated = dslText.replace(
+      new RegExp(`(^[ \\t]+${escaped}[ \\t]*:[ \\t]*drawers[ \\t]+)\\d+`, 'm'),
+      `$1${n}`,
+    );
+    if (updated !== dslText) setDslText(updated);
+  }
+
+  return (
+    <div className="field">
+      <label>Drawers</label>
+      <input
+        type="number"
+        min={1}
+        max={20}
+        value={count}
+        onChange={(e) => handleChange(e.target.value)}
+        style={{ width: 64 }}
+      />
+    </div>
+  );
 }
 
 function Row({ label, value }: { label: string; value: string }) {

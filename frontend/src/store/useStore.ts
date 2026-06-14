@@ -53,6 +53,7 @@ interface CabinetStore {
 
   activeView: '2d' | '3d';
   doorsVisible: boolean;
+  showDimensions: boolean;
   glbBlobUrl: string | null;
 
   selectedBayId: string | null;
@@ -63,6 +64,7 @@ interface CabinetStore {
   setDslText: (text: string) => void;
   setActiveView: (v: '2d' | '3d') => void;
   toggleDoors: () => void;
+  toggleDimensions: () => void;
   selectBay: (id: string | null) => void;
   selectPart: (id: string | null) => void;
   loadFile: (name: string, text: string) => void;
@@ -86,6 +88,7 @@ export const useStore = create<CabinetStore>((set, get) => ({
 
   activeView: '2d',
   doorsVisible: true,
+  showDimensions: false,
   glbBlobUrl: null,
 
   selectedBayId: null,
@@ -98,6 +101,8 @@ export const useStore = create<CabinetStore>((set, get) => ({
   setActiveView: (v) => set({ activeView: v }),
 
   toggleDoors: () => set((s) => ({ doorsVisible: !s.doorsVisible })),
+
+  toggleDimensions: () => set((s) => ({ showDimensions: !s.showDimensions })),
 
   selectBay: (id) => set({ selectedBayId: id, selectedPartId: null }),
 

@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
 import Editor from '@monaco-editor/react';
+import type Monaco from 'monaco-editor';
 import { useStore } from '../../store/useStore';
+import { registerDslCompletions } from './dslCompletions';
 import styles from './DslEditor.module.css';
 
 const DEBOUNCE_MS = 600;
@@ -10,9 +12,11 @@ export default function DslEditor() {
   const setDslText = useStore((s) => s.setDslText);
   const compile = useStore((s) => s.compile);
   const compileStatus = useStore((s) => s.compileStatus);
+  const stdlib = useStore((s) => s.stdlib);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const stdlibRef = useRef(stdlib);
+  useEffect(() => { stdlibRef.current = stdlib; }, [stdlib]);
 
-  // Auto-compile on DSL change with debounce
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
@@ -25,6 +29,10 @@ export default function DslEditor() {
 
   function handleChange(value: string | undefined) {
     setDslText(value ?? '');
+  }
+
+  function handleBeforeMount(monaco: typeof Monaco) {
+    registerDslCompletions(monaco, () => stdlibRef.current);
   }
 
   const indicator =
@@ -43,6 +51,7 @@ export default function DslEditor() {
         <Editor
           value={dslText}
           onChange={handleChange}
+          beforeMount={handleBeforeMount}
           language="yaml"
           theme="vs-dark"
           options={{
@@ -55,6 +64,8 @@ export default function DslEditor() {
             wordWrap: 'off',
             renderLineHighlight: 'line',
             padding: { top: 8, bottom: 8 },
+            quickSuggestions: { other: true, comments: false, strings: true },
+            suggestOnTriggerCharacters: true,
           }}
         />
       </div>

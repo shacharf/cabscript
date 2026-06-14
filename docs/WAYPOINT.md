@@ -38,21 +38,22 @@ ResolvedProject (source of truth)
 
 ### Frontend
 - React 19 + TypeScript (Vite), lives in `frontend/`
-- Monaco DSL editor (YAML syntax, auto-compiles 600ms after keystroke)
-- 2D front elevation viewer with bay coloring, dimension labels, and click-to-select
+- Monaco DSL editor with context-aware YAML autocomplete (values from `/api/stdlib`, line-based context detection)
+- 2D front elevation viewer: pan (drag), zoom (wheel), double-click to reset; drawer bay divisions; per-bay dimension toggle; click-to-select
 - 3D viewer (Three.js + OrbitControls, GLB loaded via `/api/render.glb`)
-- Right panel: standard/material/type dropdowns, finish color palette (swatches), selected element inspector
+- Right panel: standard/material/type dropdowns, finish color palette (swatches), selected element inspector with drawer count editing
 - Bottom panel: compile messages + cut list table
 - Start screen: New Project / Open `.yaml` file / Save `.yaml` file
+- Resizable editor/viewer/properties columns with widths persisted to localStorage
 
 ## Active Direction
 
-UI Phase 1 is complete. Next areas to tackle (not yet started):
+V4 UI features shipped. Next areas to tackle:
 
-1. **Project definition form** — GUI to set space dimensions (width/height/depth) without manually editing the DSL `space:` line
-2. **Bay editing** — click a bay in the 2D view to change its function via the properties panel (write-back to DSL layout section)
-3. **SVG export** — front elevation SVG from `outputs/svg_views.py` (stub exists, not implemented)
-4. **More cabinet types** — `kitchen_base`, `kitchen_wall`, `wardrobe` compiler support beyond `built_in`
+1. **SVG export** — front elevation SVG from `outputs/svg_views.py` (stub exists, not implemented)
+2. **More cabinet types** — `kitchen_base`, `kitchen_wall`, `wardrobe` compiler support beyond `built_in`
+3. **Drawer box geometry** — add drawer sides/bottom/back parts to the 3D GLB (currently only drawer_front exists)
+4. **Bay function editing** — extend SelectedProperties to change bay function type (not just drawer count)
 
 ## Decisions
 
@@ -71,8 +72,8 @@ UI Phase 1 is complete. Next areas to tackle (not yet started):
 - Door generation is slab-only for MVP; frame-and-panel is a future extension.
 - Hardware is represented semantically; approximate rendering only for MVP.
 - SVG views are not yet implemented (`outputs/svg_views.py` is a stub).
-- GlobalProperties panel does not yet expose space dimensions as editable fields (only standard, material, cabinet type).
-- Bay function write-back from the UI is not yet implemented (read-only inspector in V1).
+- Bay function type changing from the UI is not yet implemented; only drawer count is editable.
+- Drawer box geometry (sides, bottom, back) is not modeled; only the front face exists in the 3D GLB.
 
 ## Open Questions
 
@@ -80,6 +81,6 @@ UI Phase 1 is complete. Next areas to tackle (not yet started):
 
 ## Next
 
-1. Extend `GlobalProperties` panel to expose space dimensions (width/height/depth) as numeric inputs with DSL write-back.
-2. Add bay function editing — clicking a bay in the 2D view should allow changing its function via a dropdown in `SelectedProperties`.
-3. Implement `outputs/svg_views.py` front elevation SVG and wire a `/api/svg` endpoint.
+1. Implement `outputs/svg_views.py` front elevation SVG and wire a `/api/svg` endpoint.
+2. Add drawer box geometry to the compiler and GLB export for a fuller 3D representation.
+3. Extend bay function editing beyond drawer count — allow changing function type via a dropdown in `SelectedProperties`.

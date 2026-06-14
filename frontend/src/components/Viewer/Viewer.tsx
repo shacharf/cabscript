@@ -6,8 +6,10 @@ import styles from './Viewer.module.css';
 export default function Viewer() {
   const activeView = useStore((s) => s.activeView);
   const doorsVisible = useStore((s) => s.doorsVisible);
+  const showDimensions = useStore((s) => s.showDimensions);
   const setActiveView = useStore((s) => s.setActiveView);
   const toggleDoors = useStore((s) => s.toggleDoors);
+  const toggleDimensions = useStore((s) => s.toggleDimensions);
   const render3d = useStore((s) => s.render3d);
 
   function handleSwitch(v: '2d' | '3d') {
@@ -33,6 +35,12 @@ export default function Viewer() {
           3D
         </button>
         <div className={styles.tabSpacer} />
+        <button
+          className={`ghost${showDimensions ? ` ${styles.dimsActive}` : ''}`}
+          onClick={toggleDimensions}
+        >
+          Dims
+        </button>
         <button className={`ghost${!doorsVisible ? ` ${styles.doorsHidden}` : ''}`} onClick={toggleDoors}>
           {doorsVisible ? 'Hide Doors' : 'Show Doors'}
         </button>

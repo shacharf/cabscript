@@ -146,6 +146,10 @@ FastAPI app exposing the compiler and geometry pipeline as REST endpoints. In pr
 
 Vite + React 19 + TypeScript application. Communicates exclusively with the FastAPI REST API — no direct access to Python internals. State is managed by a single Zustand store (`store/useStore.ts`). The Monaco editor is the primary DSL authoring surface; all other panels (properties, color palette, inspector) write back to `dslText` via targeted regex line-replace on top-level YAML keys, which triggers a debounced auto-compile.
 
+The 2D canvas view (`View2d.tsx`) draws from `ResolvedProject` data using a pan/zoom transform stack (`ctx.save/translate/scale/restore`). Hit regions are stored in the pre-transform coordinate space; click events invert the transform to match. Drawer bay divisions are drawn directly from `bay.function.params.count` — no separate parts pass. The `AppShell` layout uses inline `style.width` driven by React state, persisted to `localStorage`; drag handles are plain `div`s that attach `mousemove`/`mouseup` to `document` during a resize.
+
+Autocomplete (`DslEditor/dslCompletions.ts`) registers a single Monaco `CompletionItemProvider` on `beforeMount`. Context detection is line-based: a regex on the line up to the cursor extracts the current key, then a backward scan finds the nearest lower-indented parent key. The stdlib data (standards, materials, colors) is fetched once at startup and accessed via a ref inside the provider closure.
+
 ```
 frontend/src/
   types/cabinet.ts      TypeScript mirrors of all Python Pydantic models
@@ -153,10 +157,10 @@ frontend/src/
   api/client.ts         Typed fetch wrappers (apiCompile, apiRenderGlb, …)
   components/
     StartScreen/        Open / New project gate
-    AppShell/           MenuBar + 3-column layout shell
-    DslEditor/          Monaco YAML editor (auto-compiles on change)
-    Viewer/             View2d (canvas, port of draw2dFront) + View3d (Three.js)
-    PropertiesPanel/    GlobalProperties + ColorPalette + SelectedProperties
+    AppShell/           MenuBar + 3-column resizable layout shell (widths in localStorage)
+    DslEditor/          Monaco YAML editor (auto-compiles on change) + dslCompletions.ts (context-aware autocomplete)
+    Viewer/             View2d (canvas, pan/zoom, drawer vis, dim toggle) + View3d (Three.js)
+    PropertiesPanel/    GlobalProperties + ColorPalette + SelectedProperties (drawer count editing)
     Inspector/          WarningsTable + CutlistTable (bottom pane)
 ```
 
