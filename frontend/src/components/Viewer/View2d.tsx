@@ -111,7 +111,7 @@ function drawProject(
     if (part.kind === 'back_panel' || part.kind === 'door' || part.kind === 'shelf') continue;
     const { x, y, w, h } = partXY(part);
     if (w < 0.5 || h < 0.5) continue;
-    if (['side_panel', 'top_panel', 'bottom_panel'].includes(part.kind)) {
+    if (['side_panel', 'top_panel', 'bottom_panel', 'divider'].includes(part.kind)) {
       const px = cx(x), py = cy(y + h), pw = cs(w), ph = cs(h);
       ctx.fillStyle = '#7a6a50';
       ctx.fillRect(px, py, pw, ph);

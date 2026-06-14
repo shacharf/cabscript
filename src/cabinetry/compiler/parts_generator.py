@@ -20,92 +20,76 @@ def generate_carcass_parts(
     counter = [0]
     mat = ctx.material.name
 
+    # Group modules into vertical stacks sharing the same x/width/z/depth column.
+    stacks: dict[tuple, list[ResolvedModule]] = {}
     for mod in modules:
-        # Left side panel
-        parts.append(
-            Part(
-                id=_part_id("side", counter),
-                name=f"{mod.name} Left Side",
-                kind="side_panel",
-                module_id=mod.id,
-                material=mat,
-                length=mod.height,
-                width=mod.depth,
-                thickness=t,
-                origin=Vec3(x=mod.x, y=mod.y, z=mod.z),
-                axes=PartAxes(length_axis="y", width_axis="z", thickness_axis="x"),
-                grain_direction="length",
-                edge_banding=["front"],
-            )
-        )
-        # Right side panel
-        parts.append(
-            Part(
-                id=_part_id("side", counter),
-                name=f"{mod.name} Right Side",
-                kind="side_panel",
-                module_id=mod.id,
-                material=mat,
-                length=mod.height,
-                width=mod.depth,
-                thickness=t,
-                origin=Vec3(x=mod.x + mod.width - t, y=mod.y, z=mod.z),
-                axes=PartAxes(length_axis="y", width_axis="z", thickness_axis="x"),
-                grain_direction="length",
-                edge_banding=["front"],
-            )
-        )
-        # Bottom panel (between sides)
-        inner_w = mod.width - 2 * t
-        parts.append(
-            Part(
-                id=_part_id("bottom", counter),
-                name=f"{mod.name} Bottom",
-                kind="bottom_panel",
-                module_id=mod.id,
-                material=mat,
-                length=inner_w,
-                width=mod.depth,
-                thickness=t,
-                origin=Vec3(x=mod.x + t, y=mod.y, z=mod.z),
+        key = (round(mod.x), round(mod.width), round(mod.z), round(mod.depth))
+        stacks.setdefault(key, []).append(mod)
+
+    for stack in stacks.values():
+        stack.sort(key=lambda m: m.y)
+        first = stack[0]
+        gx, gw, gz, gd = first.x, first.width, first.z, first.depth
+        gy = first.y
+        gh = sum(m.height for m in stack)
+        inner_w = gw - 2 * t
+
+        # Left side — full stack height
+        parts.append(Part(
+            id=_part_id("side", counter), name="Left Side", kind="side_panel",
+            module_id=first.id, material=mat,
+            length=gh, width=gd, thickness=t,
+            origin=Vec3(x=gx, y=gy, z=gz),
+            axes=PartAxes(length_axis="y", width_axis="z", thickness_axis="x"),
+            grain_direction="length", edge_banding=["front"],
+        ))
+        # Right side — full stack height
+        parts.append(Part(
+            id=_part_id("side", counter), name="Right Side", kind="side_panel",
+            module_id=first.id, material=mat,
+            length=gh, width=gd, thickness=t,
+            origin=Vec3(x=gx + gw - t, y=gy, z=gz),
+            axes=PartAxes(length_axis="y", width_axis="z", thickness_axis="x"),
+            grain_direction="length", edge_banding=["front"],
+        ))
+        # Bottom panel
+        parts.append(Part(
+            id=_part_id("bottom", counter), name="Bottom", kind="bottom_panel",
+            module_id=first.id, material=mat,
+            length=inner_w, width=gd, thickness=t,
+            origin=Vec3(x=gx + t, y=gy, z=gz),
+            axes=PartAxes(length_axis="x", width_axis="z", thickness_axis="y"),
+            grain_direction="length", edge_banding=["front"],
+        ))
+        # Top panel
+        parts.append(Part(
+            id=_part_id("top", counter), name="Top", kind="top_panel",
+            module_id=first.id, material=mat,
+            length=inner_w, width=gd, thickness=t,
+            origin=Vec3(x=gx + t, y=gy + gh - t, z=gz),
+            axes=PartAxes(length_axis="x", width_axis="z", thickness_axis="y"),
+            grain_direction="length", edge_banding=["front"],
+        ))
+        # Back panel — full stack
+        parts.append(Part(
+            id=_part_id("back", counter), name="Back", kind="back_panel",
+            module_id=first.id, material=mat,
+            length=gh, width=gw, thickness=bt,
+            origin=Vec3(x=gx, y=gy, z=gz + gd - bt),
+            axes=PartAxes(length_axis="y", width_axis="x", thickness_axis="z"),
+            grain_direction="none",
+        ))
+        # Horizontal dividers at module boundaries (N-1 for N stacked modules)
+        for i in range(len(stack) - 1):
+            div_y = stack[i].y + stack[i].height
+            parts.append(Part(
+                id=_part_id("div_h", counter), name="Horizontal Divider", kind="divider",
+                module_id=stack[i].id, material=mat,
+                length=inner_w, width=gd, thickness=t,
+                origin=Vec3(x=gx + t, y=div_y, z=gz),
                 axes=PartAxes(length_axis="x", width_axis="z", thickness_axis="y"),
-                grain_direction="length",
-                edge_banding=["front"],
-            )
-        )
-        # Top panel (between sides)
-        parts.append(
-            Part(
-                id=_part_id("top", counter),
-                name=f"{mod.name} Top",
-                kind="top_panel",
-                module_id=mod.id,
-                material=mat,
-                length=inner_w,
-                width=mod.depth,
-                thickness=t,
-                origin=Vec3(x=mod.x + t, y=mod.y + mod.height - t, z=mod.z),
-                axes=PartAxes(length_axis="x", width_axis="z", thickness_axis="y"),
-                grain_direction="length",
-                edge_banding=["front"],
-            )
-        )
-        # Back panel (surface-applied)
-        parts.append(
-            Part(
-                id=_part_id("back", counter),
-                name=f"{mod.name} Back",
-                kind="back_panel",
-                module_id=mod.id,
-                material=mat,
-                length=mod.height,
-                width=mod.width,
-                thickness=bt,
-                origin=Vec3(x=mod.x, y=mod.y, z=mod.z + mod.depth - bt),
-                axes=PartAxes(length_axis="y", width_axis="x", thickness_axis="z"),
-                grain_direction="none",
-            )
-        )
+                grain_direction="length", edge_banding=["front"],
+            ))
 
     return parts
 
@@ -202,5 +186,34 @@ def generate_bay_parts(
                         edge_banding=["front", "back", "left", "right"],
                     )
                 )
+
+    # Vertical dividers between adjacent columns in the same module row
+    row_groups: dict[tuple, list[ResolvedBay]] = {}
+    for bay in bays:
+        key = (bay.module_id, bay.row_index)
+        row_groups.setdefault(key, []).append(bay)
+
+    div_t = ctx.material.body_thickness
+    for row_bays in row_groups.values():
+        if len(row_bays) < 2:
+            continue
+        row_bays.sort(key=lambda b: b.col_index)
+        for i in range(len(row_bays) - 1):
+            left = row_bays[i]
+            counter[0] += 1
+            parts.append(Part(
+                id=f"div_v_{counter[0]:03d}",
+                name="Vertical Divider",
+                kind="divider",
+                module_id=left.module_id,
+                material=mat,
+                length=left.height,
+                width=left.depth,
+                thickness=div_t,
+                origin=Vec3(x=left.x + left.width, y=left.y, z=left.z),
+                axes=PartAxes(length_axis="y", width_axis="z", thickness_axis="x"),
+                grain_direction="length",
+                edge_banding=["front"],
+            ))
 
     return parts, hardware

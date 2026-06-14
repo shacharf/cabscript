@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Editor from '@monaco-editor/react';
 import type Monaco from 'monaco-editor';
 import { useStore } from '../../store/useStore';
@@ -13,6 +13,7 @@ export default function DslEditor() {
   const compile = useStore((s) => s.compile);
   const compileStatus = useStore((s) => s.compileStatus);
   const stdlib = useStore((s) => s.stdlib);
+  const [copied, setCopied] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const stdlibRef = useRef(stdlib);
   useEffect(() => { stdlibRef.current = stdlib; }, [stdlib]);
@@ -35,6 +36,13 @@ export default function DslEditor() {
     registerDslCompletions(monaco, () => stdlibRef.current);
   }
 
+  function handleCopy() {
+    navigator.clipboard.writeText(dslText).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  }
+
   const indicator =
     compileStatus === 'compiling' ? '●' : compileStatus === 'ok' ? '✓' : compileStatus === 'error' ? '✗' : '○';
 
@@ -46,6 +54,9 @@ export default function DslEditor() {
       <div className={styles.header}>
         <span className={styles.label}>DSL Editor</span>
         <span className={`${styles.indicator} ${indicatorClass}`}>{indicator}</span>
+        <button className={styles.copyBtn} onClick={handleCopy}>
+          {copied ? 'Copied!' : 'Copy'}
+        </button>
       </div>
       <div className={styles.editor}>
         <Editor
