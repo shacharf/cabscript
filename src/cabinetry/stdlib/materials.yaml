@@ -1,3 +1,23 @@
+mdf_3:
+  body_thickness: 3
+  shelf_thickness: 3
+  door_thickness: 3
+  max_board:
+    length: 2440
+    width: 1220
+  density_kg_m3: 750
+
+plywood_17:
+  body_thickness: 17
+  shelf_thickness: 17
+  door_thickness: 17
+  back_thickness: 6
+  max_board:
+    length: 2420
+    width: 1220
+  density_kg_m3: 650
+
+
 plywood_18:
   body_thickness: 18
   shelf_thickness: 18
@@ -17,3 +37,15 @@ mdf_18:
     length: 2440
     width: 1220
   density_kg_m3: 750
+
+
+mdf_30:
+  body_thickness: 20
+  shelf_thickness: 20
+  door_thickness: 20
+  back_thickness: 3
+  max_board:
+    length: 2440
+    width: 1220
+  density_kg_m3: 750
+

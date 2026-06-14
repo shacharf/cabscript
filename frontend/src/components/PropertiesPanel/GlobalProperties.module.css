@@ -1,0 +1,11 @@
+.dimRow {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.dimNote {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}

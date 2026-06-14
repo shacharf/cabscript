@@ -6,15 +6,19 @@ cabinet:
   width: 800
   height: 1800
   depth: 400
-  split: none
+  modules:
+    - id: lower
+      height: 900
+    - id: upper
+      height: "*"
 
 layout:
-  main:
-    columns:
-      "*": shelves 4 adjustable
+  lower: shelves 2 adjustable
+  upper: shelves 3 adjustable
 
 doors:
-  main: auto
+  lower: auto
+  upper: auto
   style: slab
   hinges: concealed
 

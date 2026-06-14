@@ -6,16 +6,16 @@ cabinet:
   width: 600
   height: 870
   depth: 580
-  split: none
   base: legs 80
+  modules:
+    - id: body
+      height: "*"
 
 layout:
-  main:
-    columns:
-      "*": storage
+  body: drawers 3
 
 doors:
-  main: auto
+  body: none
   style: slab
   hinges: concealed
 
