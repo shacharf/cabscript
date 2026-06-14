@@ -1,0 +1,23 @@
+warm_white:
+  rgba: [245, 240, 235, 255]
+  description: Off-white body finish
+
+oak:
+  rgba: [180, 140, 90, 255]
+  description: Natural oak door finish
+
+white:
+  rgba: [255, 255, 255, 255]
+  description: Pure white
+
+anthracite:
+  rgba: [55, 55, 60, 255]
+  description: Dark grey anthracite
+
+natural_birch:
+  rgba: [210, 180, 140, 255]
+  description: Natural birch plywood
+
+grey:
+  rgba: [150, 150, 150, 255]
+  description: Mid grey

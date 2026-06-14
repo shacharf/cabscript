@@ -1,0 +1,27 @@
+use: euro_builtin_v1
+material: plywood_18
+
+space: niche 1200 x 2650 x 600
+
+cabinet:
+  type: built_in
+  split: auto
+  base: legs 80
+
+layout:
+  top: storage 380
+  main:
+    columns:
+      400: shelves 5 adjustable
+      500: hanging rod 1700
+      "*": shoes 4
+
+doors:
+  top: auto
+  main: auto
+  style: slab
+  hinges: concealed
+
+finish:
+  body: warm_white
+  doors: oak

@@ -1,0 +1,5 @@
+adjustable_legs_80:
+  type: adjustable_legs
+  height: 80
+  plinth: recessed
+  front_setback: 50

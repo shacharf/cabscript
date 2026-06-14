@@ -1,0 +1,23 @@
+use: euro_builtin_v1
+material: plywood_18
+
+cabinet:
+  type: standing
+  width: 800
+  height: 1800
+  depth: 400
+  split: none
+
+layout:
+  main:
+    columns:
+      "*": shelves 4 adjustable
+
+doors:
+  main: auto
+  style: slab
+  hinges: concealed
+
+finish:
+  body: white
+  doors: white

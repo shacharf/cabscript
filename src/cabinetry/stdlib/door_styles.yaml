@@ -1,0 +1,12 @@
+slab:
+  type: slab
+
+frame_panel_light:
+  type: frame_panel
+  frame_width: 60
+  frame_thickness: 25
+  panel_thickness: 4
+  groove_depth: 8
+  middle_rail:
+    min_height: 1500
+    count: 1

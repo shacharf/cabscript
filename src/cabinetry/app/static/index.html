@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Cabinetry Designer</title>
+  <link rel="stylesheet" href="/static/styles.css"/>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div id="left-panel">
+    <div id="editor-area">
+      <textarea id="dsl-input" spellcheck="false">use: euro_builtin_v1
+material: plywood_18
+
+space: niche 1200 x 2650 x 600
+
+cabinet:
+  type: built_in
+  split: auto
+  base: legs 80
+
+layout:
+  top: storage 380
+  main:
+    columns:
+      400: shelves 5 adjustable
+      500: hanging rod 1700
+      "*": shoes 4
+
+doors:
+  top: auto
+  main: auto
+  style: slab
+  hinges: concealed
+
+finish:
+  body: warm_white
+  doors: oak
+</textarea>
+      <div class="btn-row">
+        <button id="btn-compile">Compile</button>
+        <button id="btn-render" class="secondary">Render 3D</button>
+      </div>
+    </div>
+    <div id="messages"></div>
+    <div id="cutlist-area">
+      <h3>Cut List</h3>
+      <table id="cutlist-table">
+        <thead>
+          <tr>
+            <th>Qty</th><th>Name</th><th>L&times;W&times;T (mm)</th><th>Material</th>
+          </tr>
+        </thead>
+        <tbody id="cutlist-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="right-panel">
+    <div id="view-tabs">
+      <button id="tab-3d" class="view-tab active">3D</button>
+      <button id="tab-2d" class="view-tab">Front View</button>
+      <button id="btn-toggle-doors" class="door-toggle">Hide Doors</button>
+    </div>
+
+    <div id="view-3d">
+      <canvas id="viewer"></canvas>
+    </div>
+    <div id="view-2d">
+      <canvas id="canvas-2d"></canvas>
+    </div>
+
+    <div id="status">Ready</div>
+  </div>
+
+  <script type="module" src="/static/viewer.js"></script>
+</body>
+</html>

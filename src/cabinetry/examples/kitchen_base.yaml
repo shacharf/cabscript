@@ -1,0 +1,24 @@
+use: euro_builtin_v1
+material: plywood_18
+
+cabinet:
+  type: kitchen_base
+  width: 600
+  height: 870
+  depth: 580
+  split: none
+  base: legs 80
+
+layout:
+  main:
+    columns:
+      "*": storage
+
+doors:
+  main: auto
+  style: slab
+  hinges: concealed
+
+finish:
+  body: white
+  doors: white

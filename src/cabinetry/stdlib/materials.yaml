@@ -1,0 +1,19 @@
+plywood_18:
+  body_thickness: 18
+  shelf_thickness: 18
+  door_thickness: 18
+  back_thickness: 6
+  max_board:
+    length: 2420
+    width: 1220
+  density_kg_m3: 650
+
+mdf_18:
+  body_thickness: 18
+  shelf_thickness: 18
+  door_thickness: 18
+  back_thickness: 3
+  max_board:
+    length: 2440
+    width: 1220
+  density_kg_m3: 750

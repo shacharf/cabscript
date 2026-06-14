@@ -1,0 +1,28 @@
+euro_builtin_v1:
+  construction: frameless
+  cabinet:
+    default_depth: 580
+  clearances:
+    side_each: 8
+    top: 10
+    back: 0
+    door_gap: 3
+  fillers:
+    side: auto
+    top: auto
+  carcass:
+    top_panel: true
+    bottom_panel: true
+    back_panel: true
+    back_panel_method: surface_applied
+  module_split:
+    mode: main_plus_top
+    default_main_height: 2250
+    min_top_module_height: 250
+    max_single_module_height_margin: 30
+  shelf:
+    default_support: shelf_pins_32
+    adjustable_shelf_clearance: 2
+  doors:
+    default_system: concealed_full_overlay
+    default_style: slab

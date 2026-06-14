@@ -1,0 +1,12 @@
+shelf_pins_32:
+  type: shelf_pins
+  pin_diameter: 5
+  hole_spacing: 32
+  front_offset: 37
+  back_offset: 37
+  hole_depth: 12
+
+cleats_basic:
+  type: cleats
+  cleat_height: 30
+  cleat_thickness: 18
