@@ -107,3 +107,6 @@ class StdLib:
 
     def all_materials(self) -> list[str]:
         return sorted(self._materials_data().keys())
+
+    def all_colors(self) -> dict:
+        return dict(self._colors_data())

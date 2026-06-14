@@ -39,11 +39,19 @@ model/project.py      — ResolvedProject  (source of truth)
 ## Package Responsibilities
 
 ```text
+frontend/                React + TypeScript SPA (Vite)
+  src/
+    types/cabinet.ts     TypeScript mirrors of Python domain models
+    store/useStore.ts    Zustand store (DSL text, project, selection, view state)
+    api/client.ts        Typed fetch wrappers for /api/* endpoints
+    components/          UI: StartScreen, AppShell, DslEditor, Viewer, PropertiesPanel, Inspector
+  vite.config.ts         Build → src/cabinetry/app/static; dev proxy /api → :8000
+
 src/cabinetry/
   app/
-    main.py          FastAPI app creation and startup
+    main.py          FastAPI app creation; mounts /static and /assets for built SPA
     routes.py        All HTTP route handlers
-    static/          index.html, viewer.js, styles.css
+    static/          Built React SPA output (index.html + assets/); gitignored except index.html
 
   dsl/
     parser.py        YAML → raw dict (DslSyntaxError on bad input)
@@ -132,16 +140,35 @@ Generates human-readable deliverables (cut list CSV/JSON, later SVG). Cut list d
 
 ### `app`
 
-FastAPI app exposing the compiler and geometry pipeline as REST endpoints. Serves the static Three.js viewer from `app/static/`.
+FastAPI app exposing the compiler and geometry pipeline as REST endpoints. In production, serves the built React SPA from `app/static/`; in development, the Vite dev server at `:5173` proxies `/api` to the FastAPI backend at `:8000`.
+
+### `frontend/` (React SPA)
+
+Vite + React 19 + TypeScript application. Communicates exclusively with the FastAPI REST API — no direct access to Python internals. State is managed by a single Zustand store (`store/useStore.ts`). The Monaco editor is the primary DSL authoring surface; all other panels (properties, color palette, inspector) write back to `dslText` via targeted regex line-replace on top-level YAML keys, which triggers a debounced auto-compile.
+
+```
+frontend/src/
+  types/cabinet.ts      TypeScript mirrors of all Python Pydantic models
+  store/useStore.ts     Zustand: dslText, project, selection, view state
+  api/client.ts         Typed fetch wrappers (apiCompile, apiRenderGlb, …)
+  components/
+    StartScreen/        Open / New project gate
+    AppShell/           MenuBar + 3-column layout shell
+    DslEditor/          Monaco YAML editor (auto-compiles on change)
+    Viewer/             View2d (canvas, port of draw2dFront) + View3d (Three.js)
+    PropertiesPanel/    GlobalProperties + ColorPalette + SelectedProperties
+    Inspector/          WarningsTable + CutlistTable (bottom pane)
+```
 
 ## Primary Flow
 
-1. User pastes DSL into the browser textarea and clicks **Compile** or **Render**.
-2. Browser POSTs to `/api/compile` or `/api/render.glb` with `{"dsl": "..."}`.
+1. User opens the React SPA (`:5173` in dev, `:8000` in prod) and clicks **New Project** or loads a `.yaml` file.
+2. Monaco editor auto-compiles 600 ms after each keystroke: browser POSTs to `/api/compile` with `{"dsl": "..."}`.
 3. `compile_dsl(text)` runs the full pipeline: parse → normalize → merge stdlib → resolve dimensions → split modules → solve layout → generate parts/doors/hardware.
-4. For `/api/compile`, the `ResolvedProject` JSON is returned with warnings.
-5. For `/api/render.glb`, the project is passed to `export_glb()` and the GLB bytes are returned (`model/gltf-binary`).
-6. The browser loads the GLB with Three.js `GLTFLoader`, frames the camera, and displays the model.
+4. `ResolvedProject` JSON is returned; the 2D canvas redraws with bay colors, dimension lines, and clickable hit regions.
+5. When the user switches to the 3D tab, the browser POSTs to `/api/render.glb`; the GLB bytes are loaded into Three.js via `GLTFLoader`.
+6. Clicking a bay or panel in the 2D view sets `selectedBayId` / `selectedPartId` in the store; `SelectedProperties` reads the matching object from `project.bays` / `project.parts`.
+7. Property panel changes (material, standard, finish color) apply a regex line-replace to `dslText` and trigger recompile.
 
 ## Public Interfaces
 

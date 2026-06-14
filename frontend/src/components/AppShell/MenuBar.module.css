@@ -1,0 +1,56 @@
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 12px;
+  height: 40px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.brand {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--accent);
+  letter-spacing: -0.02em;
+  margin-right: 4px;
+}
+
+.sep {
+  width: 1px;
+  height: 18px;
+  background: var(--border);
+  margin: 0 6px;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.filename {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.status {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 500;
+}
+
+.ok {
+  background: #1a3a2a;
+  color: var(--accent);
+}
+
+.err {
+  background: #3a1a1a;
+  color: var(--error);
+}
+
+.dim {
+  color: var(--text-muted);
+}

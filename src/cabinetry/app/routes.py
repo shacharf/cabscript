@@ -69,4 +69,5 @@ def stdlib_endpoint() -> dict:
     return {
         "standards": _stdlib.all_standards(),
         "materials": _stdlib.all_materials(),
+        "colors": _stdlib.all_colors(),
     }

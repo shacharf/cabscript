@@ -1,23 +1,51 @@
 # CabScript — Cabinet Design DSL
 
-A cabinet design tool that compiles a compact YAML DSL into a 3D model, cut list, and parts list. Includes a browser-based 3D viewer.
+A cabinet design tool that compiles a compact YAML DSL into a 3D model, cut list, and parts list. Includes a React-based browser UI.
 
 ## Requirements
 
 - Python 3.12+
+- Node.js 18+ and npm
 - [uv](https://docs.astral.sh/uv/) — install with `curl -LsSf https://astral.sh/uv/install.sh | sh`
 
 ## Local development
 
-```bash
-# Install dependencies
-uv sync
+There are two ways to run locally depending on whether you're working on the frontend.
 
-# Run the dev server (auto-reloads on file changes)
+### Option A — Frontend dev mode (hot reload for UI changes)
+
+Run the FastAPI backend and the Vite dev server separately:
+
+```bash
+# Terminal 1 — Python backend (API only)
+uv sync
+uv run uvicorn cabinetry.app.main:app --reload
+
+# Terminal 2 — React frontend (hot reload)
+cd frontend
+npm install
+npm run dev
+```
+
+Open [http://localhost:5173](http://localhost:5173). The Vite dev server proxies all `/api` requests to the FastAPI backend at `:8000`, so no CORS configuration is needed.
+
+### Option B — Backend-only (no Node.js required)
+
+Build the React frontend once, then run only the Python server:
+
+```bash
+# Build the frontend (outputs to src/cabinetry/app/static/)
+cd frontend
+npm install
+npm run build
+cd ..
+
+# Run the backend — it serves the built React app as static files
+uv sync
 uv run uvicorn cabinetry.app.main:app --reload
 ```
 
-Open [http://localhost:8000](http://localhost:8000) in your browser.
+Open [http://localhost:8000](http://localhost:8000). Use this mode when you only need to work on the backend.
 
 ### Run tests
 
@@ -39,10 +67,13 @@ cp .env .env.local
 
 ## Usage
 
-Paste a DSL document into the left panel, then:
+Click **New Project** to start with the default closet template, or **Open Project** to load a `.yaml` file.
 
-- **Compile** — validates the DSL and shows warnings/errors
-- **Render 3D** — compiles, renders a 3D model, and displays the cut list
+In the main editor:
+- **DSL editor (left)** — edit the YAML design; the app auto-compiles 600 ms after you stop typing
+- **Front view / 3D (center)** — click the tab to switch views; click a bay in the front view to inspect it
+- **Properties (right)** — change material, standard, and finish colors; selected element details appear here
+- **Messages / Cut List (bottom)** — compile warnings and the full cut list
 
 ### Example DSL
 
@@ -151,8 +182,15 @@ For production, put Nginx in front as a reverse proxy.
 ## Project structure
 
 ```
+frontend/                React + TypeScript UI (Vite)
+  src/
+    components/          UI components (editor, viewer, properties panel, inspector)
+    store/               Zustand state (DSL text, compiled project, selection)
+    api/                 Typed fetch wrappers for /api/*
+    types/               TypeScript mirrors of the Python domain models
+
 src/cabinetry/
-  app/          FastAPI app, routes, static frontend
+  app/          FastAPI app, routes, static frontend (built React output)
   dsl/          YAML parser, dimension parser, shorthand normalizer
   stdlib/       Standard library YAML files (standards, materials, door systems, …)
   model/        Pydantic data models (source of truth)
@@ -160,7 +198,7 @@ src/cabinetry/
   geometry/     Trimesh mesh generation and GLB export
   outputs/      Cut list (JSON + CSV), BOM, SVG views
 
-tests/          pytest test suite (51 tests)
+tests/          pytest test suite
 ```
 
 ## Standard library

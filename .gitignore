@@ -1,5 +1,10 @@
 *~
 *.bak
+*.pyc
 
 .idea/*
+
+# Frontend build artifacts
+frontend/node_modules/
+src/cabinetry/app/static/assets/
 

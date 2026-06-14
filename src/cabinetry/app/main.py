@@ -17,6 +17,9 @@ app.include_router(router)
 
 _STATIC = Path(__file__).parent / "static"
 app.mount("/static", StaticFiles(directory=str(_STATIC)), name="static")
+_ASSETS = _STATIC / "assets"
+if _ASSETS.exists():
+    app.mount("/assets", StaticFiles(directory=str(_ASSETS)), name="assets")
 
 
 @app.get("/")
