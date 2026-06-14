@@ -48,3 +48,26 @@ def test_parse_bay_storage():
 def test_parse_bay_empty():
     fn = parse_bay_function("empty")
     assert fn.kind == "empty"
+
+
+def test_parse_bay_drawers_with_count():
+    fn = parse_bay_function("drawers 3")
+    assert fn.kind == "drawers"
+    assert fn.params["count"] == 3
+
+
+def test_parse_bay_drawers_no_count():
+    fn = parse_bay_function("drawers")
+    assert fn.kind == "drawers"
+    assert fn.params == {}
+
+
+def test_layout_arbitrary_section_names():
+    result = normalize_shorthand({
+        "layout": {
+            "hanging": "hanging rod 1700",
+            "top_shelf": "shelves 2 adjustable",
+        }
+    })
+    assert "hanging" in result["layout"]
+    assert "top_shelf" in result["layout"]

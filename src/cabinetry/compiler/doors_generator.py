@@ -129,10 +129,11 @@ def generate_doors(
         hinges = _generate_door_hardware(door_part, ctx.door_system, hw_counter)
         hardware.extend(hinges)
 
-    module_map = {m.id: m for m in modules}
-    if "mod_main" in module_map:
-        _make_doors_for_module(module_map["mod_main"], "main")
-    if "mod_top" in module_map:
-        _make_doors_for_module(module_map["mod_top"], "top")
+    # Match each module to its door spec by id, with legacy fallback for mod_main/mod_top.
+    _LEGACY = {"mod_main": "main", "mod_top": "top"}
+    for mod in modules:
+        section_key = mod.id if mod.id in doors_dsl else _LEGACY.get(mod.id)
+        if section_key:
+            _make_doors_for_module(mod, section_key)
 
     return parts, hardware

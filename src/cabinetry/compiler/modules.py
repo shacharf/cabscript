@@ -13,6 +13,60 @@ def _parse_base_height(base_spec: str | None) -> float:
     return 0.0
 
 
+def _resolve_named_modules(
+    ctx: CompileContext,
+    module_specs: list[dict],
+    width: float,
+    depth: float,
+    base_height: float,
+    body_height: float,
+) -> list[ResolvedModule]:
+    star_count = sum(1 for s in module_specs if s.get("height") == "*")
+    if star_count > 1:
+        ctx.error("MODULE_OVERFLOW", "At most one module height may be '*'.")
+        return []
+
+    fixed_sum = sum(
+        float(s["height"]) for s in module_specs if s.get("height") != "*"
+    )
+    if fixed_sum > body_height:
+        ctx.error(
+            "MODULE_OVERFLOW",
+            f"Fixed module heights sum ({fixed_sum}mm) exceeds available body height "
+            f"({body_height}mm).",
+        )
+        return []
+
+    star_height = body_height - fixed_sum
+
+    min_h = ctx.standard.module_split.min_top_module_height
+    modules: list[ResolvedModule] = []
+    y_pos = base_height
+    for spec in module_specs:
+        h = star_height if spec.get("height") == "*" else float(spec["height"])
+        mod_id = str(spec["id"])
+        if h < min_h:
+            ctx.warn(
+                "MIN_MODULE_HEIGHT",
+                f"Module '{mod_id}' height {h}mm is below minimum {min_h}mm.",
+            )
+        modules.append(
+            ResolvedModule(
+                id=mod_id,
+                name=mod_id.replace("_", " ").title(),
+                x=0.0,
+                y=y_pos,
+                z=0.0,
+                width=width,
+                depth=depth,
+                height=h,
+            )
+        )
+        y_pos += h
+
+    return modules
+
+
 def resolve_modules(
     ctx: CompileContext, width: float, height: float, depth: float
 ) -> list[ResolvedModule]:
@@ -28,6 +82,13 @@ def resolve_modules(
     max_board = ctx.material.max_board.length
     split_spec = ctx.standard.module_split
     margin = split_spec.max_single_module_height_margin
+
+    # Named modules take priority over split: auto/none/list
+    named_specs = cabinet_spec.get("modules")
+    if named_specs:
+        return _resolve_named_modules(
+            ctx, named_specs, width, depth, base_height, body_height
+        )
 
     modules: list[ResolvedModule] = []
 

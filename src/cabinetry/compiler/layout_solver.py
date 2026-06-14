@@ -78,22 +78,10 @@ def resolve_layout(
 
             row_y += rh
 
-    # Apply layout to modules
-    has_main = "mod_main" in module_map
-    has_top = "mod_top" in module_map
-
-    if has_main and "main" in layout_dsl:
-        _resolve_for_module(module_map["mod_main"], layout_dsl["main"], "bay_main")
-    elif has_main and layout_dsl:
-        # Use first section as main
-        first_key = next(iter(layout_dsl))
-        _resolve_for_module(module_map["mod_main"], layout_dsl[first_key], "bay_main")
-    elif has_main:
-        # Default: single storage bay
-        mod = module_map["mod_main"]
+    def _default_bay(mod: ResolvedModule) -> None:
         bays.append(
             ResolvedBay(
-                id="bay_main_r0_c0",
+                id=f"bay_{mod.id}_r0_c0",
                 module_id=mod.id,
                 row_index=0,
                 col_index=0,
@@ -107,43 +95,15 @@ def resolve_layout(
             )
         )
 
-    if has_top and "top" in layout_dsl:
-        _resolve_for_module(module_map["mod_top"], layout_dsl["top"], "bay_top")
-    elif has_top:
-        mod = module_map["mod_top"]
-        bays.append(
-            ResolvedBay(
-                id="bay_top_r0_c0",
-                module_id=mod.id,
-                row_index=0,
-                col_index=0,
-                x=mod.x + t,
-                y=mod.y + t,
-                z=mod.z,
-                width=mod.width - 2 * t,
-                depth=mod.depth,
-                height=mod.height - 2 * t,
-                function=BayFunction(kind="storage"),
-            )
-        )
+    # Apply layout to every module by matching its id to a layout section key.
+    # Legacy names: mod_main → "main", mod_top → "top" (backward compat).
+    _LEGACY = {"mod_main": "main", "mod_top": "top"}
 
-    # Handle modules with no layout key
     for mod in modules:
-        if mod.id not in ("mod_main", "mod_top"):
-            bays.append(
-                ResolvedBay(
-                    id=f"bay_{mod.id}_r0_c0",
-                    module_id=mod.id,
-                    row_index=0,
-                    col_index=0,
-                    x=mod.x + t,
-                    y=mod.y + t,
-                    z=mod.z,
-                    width=mod.width - 2 * t,
-                    depth=mod.depth,
-                    height=mod.height - 2 * t,
-                    function=BayFunction(kind="storage"),
-                )
-            )
+        section_key = mod.id if mod.id in layout_dsl else _LEGACY.get(mod.id)
+        if section_key and section_key in layout_dsl:
+            _resolve_for_module(mod, layout_dsl[section_key], f"bay_{mod.id}")
+        else:
+            _default_bay(mod)
 
     return bays

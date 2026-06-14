@@ -39,6 +39,12 @@ def parse_bay_function(text: str) -> BayFunction:
     if m:
         return BayFunction(kind="storage")
 
+    # drawers [count]
+    m = re.match(r"^drawers(?:\s+(\d+))?$", text)
+    if m:
+        params: dict[str, Any] = {"count": int(m.group(1))} if m.group(1) else {}
+        return BayFunction(kind="drawers", params=params)
+
     raise ValueError(f"Cannot parse bay function: {text!r}")
 
 
@@ -100,13 +106,12 @@ def normalize_shorthand(raw: dict) -> dict:
                 "niche": {"width": w, "height": h, "depth": d},
             }
 
-    # Normalize layout shorthands
+    # Normalize layout shorthands — accept any section name, not just "main"/"top"
     if "layout" in result and isinstance(result["layout"], dict):
         layout = result["layout"]
         normalized_layout: dict = {}
-        for section_key in ("main", "top"):
-            if section_key in layout:
-                normalized_layout[section_key] = _normalize_layout_section(layout[section_key])
+        for section_key in layout:
+            normalized_layout[section_key] = _normalize_layout_section(layout[section_key])
         result["layout"] = normalized_layout
 
     return result

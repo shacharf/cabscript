@@ -3,6 +3,11 @@ from pydantic import BaseModel
 from .primitives import Mm
 
 
+class ModuleSpec(BaseModel):
+    id: str
+    height: Mm | Literal["*"]
+
+
 class CabinetRequest(BaseModel):
     type: Literal["built_in", "standing", "kitchen_base", "kitchen_wall", "wardrobe"]
     width: Mm | Literal["auto"] = "auto"
@@ -10,6 +15,7 @@ class CabinetRequest(BaseModel):
     depth: Mm | Literal["auto"] = "auto"
     split: Literal["auto", "none"] | list[Mm] = "auto"
     base: str | None = None
+    modules: list[ModuleSpec] | None = None
 
 
 class ResolvedModule(BaseModel):

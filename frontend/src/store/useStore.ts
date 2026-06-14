@@ -14,20 +14,24 @@ space: niche 1200 x 2650 x 600
 
 cabinet:
   type: built_in
-  split: auto
   base: legs 80
+  modules:
+    - id: drawers_unit
+      height: 800
+    - id: hanging
+      height: 1000
+    - id: top_shelf
+      height: "*"
 
 layout:
-  top: storage 380
-  main:
-    columns:
-      400: shelves 5 adjustable
-      500: hanging rod 1700
-      "*": shoes 4
+  drawers_unit: drawers 3
+  hanging: hanging rod 900
+  top_shelf: shelves 1 adjustable
 
 doors:
-  top: auto
-  main: auto
+  drawers_unit: none
+  hanging: auto
+  top_shelf: auto
   style: slab
   hinges: concealed
 

@@ -174,4 +174,33 @@ def generate_bay_parts(
                 )
             )
 
+        elif fn.kind == "drawers":
+            count = int(fn.params.get("count", 3))
+            if count < 1:
+                continue
+            drawer_h = bay.height / count
+            front_length = bay.width - 4  # 2mm gap each side
+            for i in range(count):
+                y_pos = bay.y + i * drawer_h + 2  # 2mm gap below
+                front_h = drawer_h - 4            # 2mm gap top + bottom
+                counter[0] += 1
+                parts.append(
+                    Part(
+                        id=f"drawer_front_{counter[0]:03d}",
+                        name=f"Drawer Front {counter[0]}",
+                        kind="drawer_front",
+                        module_id=bay.module_id,
+                        material=mat,
+                        length=front_h,
+                        width=front_length,
+                        thickness=shelf_t,
+                        origin=Vec3(x=bay.x + 2, y=y_pos, z=-shelf_t),
+                        axes=PartAxes(
+                            length_axis="y", width_axis="x", thickness_axis="z"
+                        ),
+                        grain_direction="length",
+                        edge_banding=["front", "back", "left", "right"],
+                    )
+                )
+
     return parts, hardware
