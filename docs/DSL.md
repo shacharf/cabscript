@@ -13,28 +13,31 @@ Shorthand forms are normalized to their explicit equivalents before compilation.
 use: euro_builtin_v1        # shorthand for `use: { standard: euro_builtin_v1 }`
 material: plywood_18        # shorthand for `use: { material: plywood_18 }`
 
-# Describe the installation space.
+# Describe the installation space (built_in cabinet — niche defines dimensions).
 space: niche 1200 x 2650 x 600   # shorthand: "niche W x H x D" (mm)
 
-# Cabinet configuration.
+# Cabinet configuration with explicit named modules.
 cabinet:
-  type: built_in            # built_in | standing | kitchen_base | kitchen_wall | wardrobe
-  split: auto               # auto | none | [list of explicit heights in mm]
+  type: built_in
   base: legs 80             # shorthand: "legs <height>" | "plinth <height>"
+  modules:
+    - id: lower
+      height: 1000
+    - id: upper
+      height: "*"           # takes remaining body height
 
-# Interior layout — one or more named regions mapped to a row/column grid.
+# Interior layout — each key matches a module id.
 layout:
-  top: storage 380          # shorthand: single-bay region with function and fixed height (mm)
-  main:
+  lower:
     columns:
-      400: shelves 5 adjustable   # fixed width (mm): bay function
-      500: hanging rod 1700
-      "*": shoes 4                # "*" = take remaining width
+      400: shelves 4        # fixed width (mm): bay function shorthand
+      "*": hanging rod 900  # "*" = take remaining width
+  upper: shelves 2 adjustable   # shorthand: single full-width bay
 
-# Door configuration.
+# Door configuration — each key matches a module id or is a style option.
 doors:
-  top: auto                 # auto | none
-  main: auto
+  lower: auto               # auto | none
+  upper: auto
   style: slab               # slab | frame_panel_light
   hinges: concealed         # concealed (only supported value for MVP)
 
@@ -54,10 +57,10 @@ finish:
 
 Selects the construction standard and/or material from the standard library.
 
-| Field      | Type   | Default            | Description                              |
-|------------|--------|--------------------|------------------------------------------|
-| `standard` | string | —                  | Standard library key, e.g. `euro_builtin_v1` |
-| `material` | string | —                  | Material library key, e.g. `plywood_18`  |
+| Field      | Type   | Default | Description                                      |
+|------------|--------|---------|--------------------------------------------------|
+| `standard` | string | —       | Standard library key, e.g. `euro_builtin_v1`     |
+| `material` | string | —       | Material library key, e.g. `plywood_18`          |
 
 **Shorthand forms**
 
@@ -79,14 +82,16 @@ use:
 
 ### `space`
 
-Describes the installation envelope.
+Describes the installation envelope. Required for `built_in` cabinets; omitted for standalone types (use `cabinet.width/height/depth` instead).
 
-| Field  | Type                  | Description                                 |
-|--------|-----------------------|---------------------------------------------|
-| `kind` | `niche` \| `free`     | `niche` = fixed opening; `free` = standalone |
-| `niche.width`  | mm            | Opening width                               |
-| `niche.height` | mm            | Opening height                              |
-| `niche.depth`  | mm            | Opening depth                               |
+| Field          | Type              | Description        |
+|----------------|-------------------|--------------------|
+| `kind`         | `niche` \| `free` | `niche` = fixed opening; `free` = standalone |
+| `niche.width`  | mm                | Opening width      |
+| `niche.height` | mm                | Opening height     |
+| `niche.depth`  | mm                | Opening depth      |
+
+Cabinet body dimensions are derived from the niche by subtracting construction clearances defined in the selected standard.
 
 **Shorthand form**
 
@@ -107,13 +112,17 @@ Dimension string formats accepted: `1200 x 2650 x 600`, `1200x2650x600`, `1200 X
 
 ### `cabinet`
 
-Controls cabinet type, module splitting, and base.
+Controls cabinet type, dimensions, module definition, and base.
 
-| Field   | Type                                       | Default  | Description                                         |
-|---------|--------------------------------------------|----------|-----------------------------------------------------|
-| `type`  | `built_in` \| `standing` \| `kitchen_base` \| `kitchen_wall` \| `wardrobe` | — | Cabinet category |
-| `split` | `auto` \| `none` \| list of mm             | `auto`   | Module split strategy (see §Module splitting below) |
-| `base`  | string \| null                             | null     | Base system shorthand or null                       |
+| Field     | Type                                                      | Default  | Description                          |
+|-----------|-----------------------------------------------------------|----------|--------------------------------------|
+| `type`    | `built_in` \| `standing` \| `kitchen_base` \| `kitchen_wall` \| `wardrobe` | — | Cabinet category |
+| `width`   | mm                                                        | 600      | Explicit width — used when `type` is not `built_in` |
+| `height`  | mm                                                        | 2000     | Explicit height — used when `type` is not `built_in` |
+| `depth`   | mm                                                        | standard default | Explicit depth — used when `type` is not `built_in` |
+| `split`   | `auto` \| `none` \| list of mm                            | `auto`   | Module split strategy (ignored when `modules` is present) |
+| `base`    | string \| null                                            | null     | Base system shorthand or null        |
+| `modules` | list of `{id, height}` objects                            | —        | Named module list (takes priority over `split`) |
 
 **`base` shorthand forms**
 
@@ -122,55 +131,77 @@ base: legs 80       # adjustable legs, 80 mm height
 base: plinth 100    # plinth box, 100 mm height
 ```
 
-**Module splitting**
+**Standalone cabinet dimensions**
 
-`auto` applies the standard's `module_split` rules:
-- If body height ≤ max board length − margin → one module.
-- Otherwise → main module (up to `default_main_height`) + top module (remainder).
+For cabinet types other than `built_in`, specify explicit dimensions instead of a `space` niche:
 
-`none` forces a single module regardless of height.
+```yaml
+cabinet:
+  type: standing
+  width: 800
+  height: 1800
+  depth: 400
+```
 
-A list of mm values sets explicit split heights from the bottom, e.g. `[2250]` → main at 0–2250, top at 2250–body_height.
+Omitted dimensions fall back to defaults: `width=600`, `height=2000`, `depth` from standard.
+
+**Named modules**
+
+The recommended way to define modules. Each entry has a unique `id` (used as the key in `layout` and `doors`) and a `height` in mm. Exactly one module may use `"*"` to take the remaining body height.
+
+```yaml
+cabinet:
+  modules:
+    - id: lower
+      height: 900
+    - id: upper
+      height: "*"
+```
+
+Modules stack bottom-to-top in the order listed.
+
+**Auto-split (legacy)**
+
+When `modules` is absent, `split: auto` applies the standard's `module_split` rules:
+- If body height ≤ max board length − margin → one module (`id: mod_main`).
+- Otherwise → main module (`id: mod_main`, up to `default_main_height`) + top module (`id: mod_top`, remainder).
+
+`split: none` forces a single `mod_main` module regardless of height.
+
+A list of mm values sets explicit split heights, e.g. `split: [2250]` → `mod_0` at 0–2250, `mod_1` at 2250–body_height.
 
 ---
 
 ### `layout`
 
-Maps named regions to a row/column grid of bays. Region names (`main`, `top`) correspond to modules produced by the module splitter.
+Maps module ids to a row/column grid of bays. Each key must match a module id from `cabinet.modules` (or `mod_main` / `mod_top` for auto-split).
 
-**Region shorthand (single-bay)**
+**Single-bay shorthand**
 
 ```yaml
 layout:
-  top: storage 380
-# expands to:
-layout:
-  top:
-    rows:
-      - height: 380
-        columns:
-          - width: "*"
-            function: { kind: storage }
+  upper: shelves 2 adjustable
+# expands to a single full-width, full-height bay with that function
 ```
 
-**Multi-column region**
+**Multi-column shorthand**
 
 ```yaml
 layout:
-  main:
+  lower:
     columns:
-      400: shelves 5 adjustable
+      400: shelves 5 adjustable   # fixed width (mm): bay function
       500: hanging rod 1700
-      "*": shoes 4
+      "*": shoes 4                # "*" = take remaining width
 ```
 
-Columns are resolved left to right. `"*"` takes the remaining inner width after fixed columns. Only one `"*"` column per row is supported.
+Columns are resolved left to right. Only one `"*"` column per row is supported.
 
 **Row/column grid (explicit)**
 
 ```yaml
 layout:
-  main:
+  lower:
     rows:
       - height: "*"
         columns:
@@ -181,6 +212,10 @@ layout:
           - width: "*"
             function: { kind: shoes, params: { rows: 4 } }
 ```
+
+**Shelf merging across columns**
+
+When multiple adjacent columns in the same row both have `shelves` or `shoes` functions, shelves are generated as a single full-width part spanning all columns. The vertical divider between the columns acts as a shelf support. For rows where only one column has shelves, the shelf spans that column only.
 
 **Bay functions**
 
@@ -195,21 +230,28 @@ layout:
 | `empty`                    | `empty`    | —                                           |
 | `hooks`                    | `hooks`    | —                                           |
 | `drawers`                  | `drawers`  | —                                           |
+| `drawers 4`                | `drawers`  | `count: 4`                                  |
 
 ---
 
 ### `doors`
 
-Controls door generation per region.
+Controls door generation per module region, plus global style options.
 
-| Field    | Type                     | Default | Description                                   |
-|----------|--------------------------|---------|-----------------------------------------------|
-| `top`    | `auto` \| `none`         | `none`  | Door coverage for the top module region        |
-| `main`   | `auto` \| `none`         | `auto`  | Door coverage for the main module region       |
-| `style`  | string                   | standard default | Door style key, e.g. `slab`, `frame_panel_light` |
-| `hinges` | `concealed`              | standard default | Hinge system (only `concealed` for MVP)       |
+| Field     | Type                     | Default | Description                                        |
+|-----------|--------------------------|---------|----------------------------------------------------|
+| `<mod-id>`| `auto` \| `none`         | `none`  | Door coverage for that module                      |
+| `style`   | string                   | standard default | Door style key, e.g. `slab`, `frame_panel_light` |
+| `hinges`  | `concealed`              | standard default | Hinge system (only `concealed` for MVP)          |
 
-`auto` generates one door per column per row. If an opening exceeds the maximum single-door width, it is split into two doors.
+`auto` generates one door covering the full module width. If the opening exceeds the maximum single-door width, it is split into two doors side by side.
+
+```yaml
+doors:
+  lower: auto
+  upper: none
+  style: slab
+```
 
 ---
 
@@ -217,12 +259,12 @@ Controls door generation per region.
 
 Maps part roles to finish names. Finish names are resolved via `stdlib/colors.yaml` to RGBA values for GLB rendering.
 
-| Field     | Type   | Default       | Description                         |
-|-----------|--------|---------------|-------------------------------------|
-| `body`    | string | —             | Carcass panels and shelves           |
-| `doors`   | string | —             | Door faces                          |
-| `shelves` | string | same as `body` | Shelf panels (optional override)    |
-| `back`    | string | same as `body` | Back panel (optional override)      |
+| Field     | Type   | Default        | Description                          |
+|-----------|--------|----------------|--------------------------------------|
+| `body`    | string | —              | Carcass panels and shelves           |
+| `doors`   | string | —              | Door faces                           |
+| `shelves` | string | same as `body` | Shelf panels (optional override)     |
+| `back`    | string | same as `body` | Back panel (optional override)       |
 
 ---
 
@@ -243,18 +285,18 @@ W x H x D
 
 Standard library entries are defined in `src/cabinetry/stdlib/`. The keys below are available out of the box.
 
-| Category       | Key                      | File                  |
-|----------------|--------------------------|-----------------------|
-| Standard        | `euro_builtin_v1`        | `standards.yaml`      |
-| Material        | `plywood_18`             | `materials.yaml`      |
-| Material        | `mdf_18`                 | `materials.yaml`      |
-| Door system     | `concealed_full_overlay` | `door_systems.yaml`   |
-| Door style      | `slab`                   | `door_styles.yaml`    |
-| Door style      | `frame_panel_light`      | `door_styles.yaml`    |
-| Shelf system    | `shelf_pins_32`          | `shelf_systems.yaml`  |
-| Shelf system    | `cleats_basic`           | `shelf_systems.yaml`  |
-| Base system     | `adjustable_legs_80`     | `base_systems.yaml`   |
-| Finish colour   | `warm_white`             | `colors.yaml`         |
-| Finish colour   | `oak`                    | `colors.yaml`         |
-| Finish colour   | `white`                  | `colors.yaml`         |
-| Finish colour   | `anthracite`             | `colors.yaml`         |
+| Category      | Key                      | File                  |
+|---------------|--------------------------|-----------------------|
+| Standard       | `euro_builtin_v1`        | `standards.yaml`      |
+| Material       | `plywood_18`             | `materials.yaml`      |
+| Material       | `mdf_18`                 | `materials.yaml`      |
+| Door system    | `concealed_full_overlay` | `door_systems.yaml`   |
+| Door style     | `slab`                   | `door_styles.yaml`    |
+| Door style     | `frame_panel_light`      | `door_styles.yaml`    |
+| Shelf system   | `shelf_pins_32`          | `shelf_systems.yaml`  |
+| Shelf system   | `cleats_basic`           | `shelf_systems.yaml`  |
+| Base system    | `adjustable_legs_80`     | `base_systems.yaml`   |
+| Finish colour  | `warm_white`             | `colors.yaml`         |
+| Finish colour  | `oak`                    | `colors.yaml`         |
+| Finish colour  | `white`                  | `colors.yaml`         |
+| Finish colour  | `anthracite`             | `colors.yaml`         |

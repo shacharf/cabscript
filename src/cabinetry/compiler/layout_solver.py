@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 from .context import CompileContext
 from ..model.cabinet import ResolvedModule
 from ..model.layout import ResolvedBay, BayFunction
@@ -10,11 +12,23 @@ def resolve_layout(
     t = ctx.material.body_thickness
     bays: list[ResolvedBay] = []
 
-    module_map = {m.id: m for m in modules}
+    # Identify which module is the topmost in each vertical column stack.
+    # Non-top modules share their "ceiling" with a horizontal carcass divider
+    # placed at mod.y + mod.height (not at mod.y + mod.height - t), so their
+    # inner height is mod.height - t, not mod.height - 2*t.
+    stacks: dict[tuple, list[ResolvedModule]] = defaultdict(list)
+    for mod in modules:
+        key = (round(mod.x), round(mod.width), round(mod.z), round(mod.depth))
+        stacks[key].append(mod)
+    top_module_ids: set[str] = set()
+    for stack_mods in stacks.values():
+        stack_mods.sort(key=lambda m: m.y)
+        top_module_ids.add(stack_mods[-1].id)
 
     def _resolve_for_module(mod: ResolvedModule, section: dict, bay_id_prefix: str) -> None:
         rows_spec = section.get("rows", [])
-        inner_height = mod.height - 2 * t  # top + bottom panel
+        is_top = mod.id in top_module_ids
+        inner_height = mod.height - 2 * t if is_top else mod.height - t
         inner_width = mod.width - 2 * t    # left + right side
 
         # Resolve heights
@@ -79,6 +93,8 @@ def resolve_layout(
             row_y += rh
 
     def _default_bay(mod: ResolvedModule) -> None:
+        is_top = mod.id in top_module_ids
+        h = mod.height - 2 * t if is_top else mod.height - t
         bays.append(
             ResolvedBay(
                 id=f"bay_{mod.id}_r0_c0",
@@ -90,7 +106,7 @@ def resolve_layout(
                 z=mod.z,
                 width=mod.width - 2 * t,
                 depth=mod.depth,
-                height=mod.height - 2 * t,
+                height=h,
                 function=BayFunction(kind="storage"),
             )
         )

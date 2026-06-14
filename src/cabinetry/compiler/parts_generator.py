@@ -104,44 +104,59 @@ def generate_bay_parts(
     counter = [0]
     hw_counter = [0]
 
+    # Group shelf/shoe bays by row so that adjacent shelf columns produce a
+    # single full-width shelf instead of separate per-bay pieces.
+    shelf_clearance = 2.0
+    shelf_row_groups: dict[tuple, list[ResolvedBay]] = {}
+    for bay in bays:
+        if bay.function.kind in ("shelves", "shoes"):
+            key = (bay.module_id, bay.row_index)
+            shelf_row_groups.setdefault(key, []).append(bay)
+
+    for row_bays in shelf_row_groups.values():
+        row_bays.sort(key=lambda b: b.col_index)
+        left_bay = row_bays[0]
+        right_bay = row_bays[-1]
+        fn = left_bay.function
+        count = fn.params.get("count", fn.params.get("rows", 3))
+        # Merged shelf spans from leftmost bay's left edge to rightmost bay's right edge
+        shelf_x = left_bay.x + shelf_clearance / 2
+        shelf_length = (right_bay.x + right_bay.width) - left_bay.x - shelf_clearance
+        shelf_width = left_bay.depth - 50  # front/rear clearance
+
+        if count > 0:
+            spacing = left_bay.height / (count + 1)
+            for i in range(int(count)):
+                y_pos = left_bay.y + spacing * (i + 1)
+                counter[0] += 1
+                pid = f"shelf_{counter[0]:03d}"
+                parts.append(
+                    Part(
+                        id=pid,
+                        name=f"Shelf {counter[0]}",
+                        kind="shelf",
+                        module_id=left_bay.module_id,
+                        material=mat,
+                        length=shelf_length,
+                        width=shelf_width,
+                        thickness=shelf_t,
+                        origin=Vec3(
+                            x=shelf_x,
+                            y=y_pos,
+                            z=left_bay.z + 25,
+                        ),
+                        axes=PartAxes(
+                            length_axis="x", width_axis="z", thickness_axis="y"
+                        ),
+                        grain_direction="length",
+                        edge_banding=["front"],
+                    )
+                )
+
     for bay in bays:
         fn = bay.function
-        if fn.kind in ("shelves", "shoes"):
-            count = fn.params.get("count", fn.params.get("rows", 3))
-            shelf_clearance = 2.0
-            shelf_length = bay.width - shelf_clearance
-            shelf_width = bay.depth - 50  # some front/rear clearance
 
-            if count > 0:
-                spacing = bay.height / (count + 1)
-                for i in range(int(count)):
-                    y_pos = bay.y + spacing * (i + 1)
-                    counter[0] += 1
-                    pid = f"shelf_{counter[0]:03d}"
-                    parts.append(
-                        Part(
-                            id=pid,
-                            name=f"Shelf {counter[0]}",
-                            kind="shelf",
-                            module_id=bay.module_id,
-                            material=mat,
-                            length=shelf_length,
-                            width=shelf_width,
-                            thickness=shelf_t,
-                            origin=Vec3(
-                                x=bay.x + shelf_clearance / 2,
-                                y=y_pos,
-                                z=bay.z + 25,
-                            ),
-                            axes=PartAxes(
-                                length_axis="x", width_axis="z", thickness_axis="y"
-                            ),
-                            grain_direction="length",
-                            edge_banding=["front"],
-                        )
-                    )
-
-        elif fn.kind == "hanging":
+        if fn.kind == "hanging":
             rod_height = fn.params.get("rod_height", bay.height - 100)
             hw_counter[0] += 1
             hardware.append(

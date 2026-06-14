@@ -85,12 +85,10 @@ src/cabinetry/
   compiler/
     context.py       CompileContext dataclass (mutable pipeline state)
     defaults.py      deep_merge(base, override) — stdlib < standard < user
-    normalize.py     High-level normalization orchestration
-    resolve_dimensions.py  Niche/clearance → cabinet w/h/d
-    modules.py       Module splitting logic (main_plus_top)
+    resolve_dimensions.py  Niche/clearance → cabinet w/h/d; explicit dims for standing cabinets
+    modules.py       Module splitting logic (auto/none/list + named modules)
     layout_solver.py Row/column grid → ResolvedBay list
-    parts_generator.py    Carcass panels + shelf parts
-    shelves_generator.py  Shelf distribution within a bay
+    parts_generator.py    Carcass panels, full-row shelves, vertical dividers
     doors_generator.py    Slab door parts + hinge metadata
     hardware_generator.py Legs, rods, hinges
     warnings.py      Warning/error validation checks

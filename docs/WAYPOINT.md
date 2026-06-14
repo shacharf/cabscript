@@ -34,13 +34,13 @@ ResolvedProject (source of truth)
 - Pydantic v2 domain model (`ResolvedProject`)
 - trimesh GLB export
 - Cut list generation (JSON + CSV)
-- 51 passing tests
+- 54 passing tests
 
 ### Frontend
 - React 19 + TypeScript (Vite), lives in `frontend/`
 - Monaco DSL editor with context-aware YAML autocomplete (values from `/api/stdlib`, line-based context detection)
-- 2D front elevation viewer: pan (drag), zoom (wheel), double-click to reset; drawer bay divisions; per-bay dimension toggle; click-to-select
-- 3D viewer (Three.js + OrbitControls, GLB loaded via `/api/render.glb`)
+- 2D front elevation viewer: pan (drag), zoom (wheel), double-click to reset; drawer bay divisions; per-bay dimension toggle; click-to-select; vertical dividers enforced to minimum 3 px with a distinct stroke
+- 3D viewer (Three.js + OrbitControls, GLB loaded via `/api/render.glb`); camera starts in front of the cabinet (negative-Z side)
 - Right panel: standard/material/type dropdowns, finish color palette (swatches), selected element inspector with drawer count editing
 - Bottom panel: compile messages + cut list table
 - Start screen: New Project / Open `.yaml` file / Save `.yaml` file
@@ -48,7 +48,7 @@ ResolvedProject (source of truth)
 
 ## Active Direction
 
-V4 UI features shipped. Next areas to tackle:
+V4 UI features shipped. Recent rendering fixes applied (see Decisions). Next areas to tackle:
 
 1. **SVG export** — front elevation SVG from `outputs/svg_views.py` (stub exists, not implemented)
 2. **More cabinet types** — `kitchen_base`, `kitchen_wall`, `wardrobe` compiler support beyond `built_in`
@@ -58,9 +58,10 @@ V4 UI features shipped. Next areas to tackle:
 ## Decisions
 
 - Internal source of truth is a typed Pydantic v2 semantic model (`ResolvedProject`).
-- Coordinate system: X = width, Y = height, Z = depth; cabinet origin at back-left-bottom.
-- Module split: `main_plus_top` mode — split when body height exceeds max board length.
+- Coordinate system: X = width, Y = height, Z = depth. Origin is at the **front**-left-bottom of the cabinet interior (x=0, y=0, z=0 = front-left-bottom corner). Z increases toward the back; doors and drawer fronts are at z < 0 (in front of the opening). The 3D camera is positioned at negative Z to look at the cabinet from the front.
+- Module split: `main_plus_top` auto mode — split when body height exceeds max board length. Named modules (`cabinet.modules`) take priority and support arbitrary module ids.
 - Cut list dimensions come from `Part.length / width / thickness` manufacturing fields, never from mesh bounding boxes.
+- Shelves in a multi-column row are generated as a single full-width part spanning all columns (sits on top of vertical dividers), not per-bay pieces.
 - Technology stack: Python 3.12+, FastAPI, Pydantic v2, PyYAML, trimesh, NumPy, React 19, TypeScript, Vite, Three.js, Zustand, Monaco Editor; uv for Python env.
 - Linting: black + flake8 (no ruff).
 - Storage root is read from the `CABSCRIPT_ROOT` env var (loaded via `python-dotenv`); default is `<repo root>/data`. Backend storage integration deferred.

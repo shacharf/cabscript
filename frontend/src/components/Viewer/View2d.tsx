@@ -112,11 +112,13 @@ function drawProject(
     const { x, y, w, h } = partXY(part);
     if (w < 0.5 || h < 0.5) continue;
     if (['side_panel', 'top_panel', 'bottom_panel', 'divider'].includes(part.kind)) {
-      const px = cx(x), py = cy(y + h), pw = cs(w), ph = cs(h);
+      const pw = part.kind === 'divider' ? Math.max(3, cs(w)) : cs(w);
+      const ph = cs(h);
+      const px = cx(x), py = cy(y + h);
       ctx.fillStyle = '#7a6a50';
       ctx.fillRect(px, py, pw, ph);
-      ctx.strokeStyle = '#a08060';
-      ctx.lineWidth = 0.5;
+      ctx.strokeStyle = part.kind === 'divider' ? '#c0a070' : '#a08060';
+      ctx.lineWidth = part.kind === 'divider' ? 1 : 0.5;
       ctx.strokeRect(px, py, pw, ph);
       hitRegions.push({ kind: 'part', id: part.id, x: px, y: py, w: pw, h: ph });
     }
@@ -198,11 +200,17 @@ function drawProject(
     ctx.textBaseline = 'middle';
     ctx.font = '9px system-ui';
     ctx.fillStyle = 'rgba(100,180,255,0.75)';
-    for (const bay of project.bays) {
+    const _dimSeen = new Set<string>();
+    const uniqueBays = project.bays.filter(bay => {
+      const key = `${bay.y}:${bay.height}`;
+      if (_dimSeen.has(key)) return false;
+      _dimSeen.add(key);
+      return true;
+    });
+    for (const bay of uniqueBays) {
       const midY = cy(bay.y + bay.height / 2);
       const topY = cy(bay.y + bay.height);
       const botY = cy(bay.y);
-      // Tick marks at bay top and bottom
       ctx.strokeStyle = 'rgba(100,180,255,0.3)';
       ctx.lineWidth = 0.5;
       ctx.beginPath();
