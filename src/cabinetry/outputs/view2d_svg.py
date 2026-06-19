@@ -130,8 +130,17 @@ def project_to_svg(project: ResolvedProject) -> str:
         if w < 0.5 or h < 0.5:
             continue
         px, py = sx(x), sy(y + h)
-        pw_s = ss(max(part.thickness if part.kind == "divider" else w, 1))
-        ph_s = ss(h)
+        is_vertical_div = part.kind == "divider" and part.axes.thickness_axis == "x"
+        is_horizontal_div = part.kind == "divider" and part.axes.thickness_axis == "y"
+        if is_vertical_div:
+            pw_s = ss(max(w, 2))   # w == thickness; ensure min visible width
+            ph_s = ss(h)
+        elif is_horizontal_div:
+            pw_s = ss(w)           # w == full inner width
+            ph_s = ss(max(h, 2))   # h == thickness; ensure min visible height
+        else:
+            pw_s = ss(w)
+            ph_s = ss(h)
         stroke_w = 1 if part.kind == "divider" else 0.5
         stroke_c = "#c0a070" if part.kind == "divider" else _WOOD_STROKE
         lines.append(
