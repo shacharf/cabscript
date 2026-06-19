@@ -22,6 +22,11 @@ if _ASSETS.exists():
     app.mount("/assets", StaticFiles(directory=str(_ASSETS)), name="assets")
 
 
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon() -> FileResponse:
+    return FileResponse(str(_STATIC / "favicon.ico"))
+
+
 @app.get("/")
 def index() -> FileResponse:
     return FileResponse(str(_STATIC / "index.html"))

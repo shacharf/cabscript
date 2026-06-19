@@ -5,16 +5,27 @@ const ROLES = ['body', 'doors', 'shelves'] as const;
 type Role = (typeof ROLES)[number];
 
 function replaceLine(dsl: string, role: Role, color: string): string {
-  const pattern = new RegExp(`^(\\s+${role}:).*$`, 'm');
-  const replacement = `  ${role}: ${color}`;
-  if (pattern.test(dsl)) {
-    return dsl.replace(pattern, replacement);
+  const line = `  ${role}: ${color}`;
+
+  const finishIdx = dsl.search(/^finish:/m);
+  if (finishIdx === -1) {
+    return dsl.trimEnd() + `\n\nfinish:\n${line}\n`;
   }
-  // Try to insert under finish: block
-  if (/^finish:/m.test(dsl)) {
-    return dsl.replace(/^(finish:.*)$/m, `$1\n${replacement}`);
-  }
-  return dsl.trimEnd() + `\n\nfinish:\n${replacement}\n`;
+
+  // Determine the extent of the finish block (up to next top-level key or EOF)
+  const afterHeader = dsl.indexOf('\n', finishIdx);
+  const rest = dsl.slice(afterHeader + 1);
+  const nextTopLevel = rest.search(/^[^\s#]/m);
+  const finishBlockEnd = nextTopLevel === -1 ? dsl.length : afterHeader + 1 + nextTopLevel;
+
+  const finishBlock = dsl.slice(finishIdx, finishBlockEnd);
+  const rolePattern = new RegExp(`^([ \\t]+${role}:).*$`, 'm');
+
+  const newFinishBlock = rolePattern.test(finishBlock)
+    ? finishBlock.replace(rolePattern, line)
+    : finishBlock.replace(/^(finish:[^\n]*)$/m, `$1\n${line}`);
+
+  return dsl.slice(0, finishIdx) + newFinishBlock + dsl.slice(finishBlockEnd);
 }
 
 export default function ColorPalette() {
@@ -31,7 +42,13 @@ export default function ColorPalette() {
   }
 
   function currentColor(role: Role): string {
-    const match = dslText.match(new RegExp(`^\\s+${role}:\\s*(\\S+)`, 'm'));
+    const finishIdx = dslText.search(/^finish:/m);
+    if (finishIdx === -1) return '';
+    const afterHeader = dslText.indexOf('\n', finishIdx);
+    const rest = dslText.slice(afterHeader + 1);
+    const nextTopLevel = rest.search(/^[^\s#]/m);
+    const finishBlock = nextTopLevel === -1 ? rest : rest.slice(0, nextTopLevel);
+    const match = finishBlock.match(new RegExp(`^[ \\t]+${role}:\\s*(\\S+)`, 'm'));
     return match?.[1] ?? '';
   }
 
