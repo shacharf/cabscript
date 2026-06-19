@@ -4,7 +4,7 @@ from .primitives import Mm
 
 
 class BayFunction(BaseModel):
-    kind: Literal["shelves", "hanging", "drawers", "shoes", "storage", "hooks", "empty"]
+    kind: Literal["shelves", "hanging", "drawers", "drawers_no_front", "shoes", "storage", "hooks", "empty"]
     params: dict[str, Any] = Field(default_factory=dict)
 
 

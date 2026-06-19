@@ -17,6 +17,7 @@ export type BayFunctionKind =
   | 'shelves'
   | 'hanging'
   | 'drawers'
+  | 'drawers_no_front'
   | 'shoes'
   | 'storage'
   | 'hooks'

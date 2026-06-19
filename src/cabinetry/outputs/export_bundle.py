@@ -12,6 +12,7 @@ from .cutlist import generate_cutlist, board_cutlist_to_csv
 from .cut_svg import board_to_svg
 from .export_html import build_export_html
 from .nesting import nest_parts, Board
+from .view2d_svg import project_to_svg
 
 
 def _cut_plan_csv(boards: list[Board]) -> str:
@@ -63,6 +64,7 @@ def build_export_zip(
 
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr("view2d.svg", project_to_svg(project))
         zf.writestr("cut-list.csv", board_cutlist_to_csv(items))
         zf.writestr("cut-plan.csv", cut_plan)
         zf.writestr("summary.txt", _summary_txt(boards))

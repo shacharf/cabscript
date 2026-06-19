@@ -215,7 +215,9 @@ layout:
 
 **Shelf merging across columns**
 
-When multiple adjacent columns in the same row both have `shelves` or `shoes` functions, shelves are generated as a single full-width part spanning all columns. The vertical divider between the columns acts as a shelf support. For rows where only one column has shelves, the shelf spans that column only.
+When multiple adjacent columns in the same row both have `shelves` or `shoes` functions **with the same count**, shelves are generated as a single full-width part spanning all columns. The vertical divider between the columns acts as a shelf support. For rows where only one column has shelves, the shelf spans that column only.
+
+Columns with *different* shelf counts are not merged — each count group generates its own shelf set spanning only the columns that share that count.
 
 **Bay functions**
 
@@ -231,6 +233,8 @@ When multiple adjacent columns in the same row both have `shelves` or `shoes` fu
 | `hooks`                    | `hooks`    | —                                           |
 | `drawers`                  | `drawers`  | —                                           |
 | `drawers 4`                | `drawers`  | `count: 4`                                  |
+| `drawers no_front`         | `drawers_no_front` | —                                   |
+| `drawers 4 no_front`       | `drawers_no_front` | `count: 4`                          |
 
 ---
 

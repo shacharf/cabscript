@@ -110,7 +110,9 @@ def generate_bay_parts(
     shelf_row_groups: dict[tuple, list[ResolvedBay]] = {}
     for bay in bays:
         if bay.function.kind in ("shelves", "shoes"):
-            key = (bay.module_id, bay.row_index)
+            fn = bay.function
+            count = fn.params.get("count", fn.params.get("rows", 3))
+            key = (bay.module_id, bay.row_index, count)
             shelf_row_groups.setdefault(key, []).append(bay)
 
     for row_bays in shelf_row_groups.values():
@@ -173,34 +175,36 @@ def generate_bay_parts(
                 )
             )
 
-        elif fn.kind == "drawers":
+        elif fn.kind in ("drawers", "drawers_no_front"):
             count = int(fn.params.get("count", 3))
             if count < 1:
                 continue
-            drawer_h = bay.height / count
-            front_length = bay.width - 4  # 2mm gap each side
-            for i in range(count):
-                y_pos = bay.y + i * drawer_h + 2  # 2mm gap below
-                front_h = drawer_h - 4            # 2mm gap top + bottom
-                counter[0] += 1
-                parts.append(
-                    Part(
-                        id=f"drawer_front_{counter[0]:03d}",
-                        name=f"Drawer Front {counter[0]}",
-                        kind="drawer_front",
-                        module_id=bay.module_id,
-                        material=mat,
-                        length=front_h,
-                        width=front_length,
-                        thickness=shelf_t,
-                        origin=Vec3(x=bay.x + 2, y=y_pos, z=-shelf_t),
-                        axes=PartAxes(
-                            length_axis="y", width_axis="x", thickness_axis="z"
-                        ),
-                        grain_direction="length",
-                        edge_banding=["front", "back", "left", "right"],
+            if fn.kind == "drawers":
+                drawer_h = bay.height / count
+                front_length = bay.width - 4  # 2mm gap each side
+                for i in range(count):
+                    y_pos = bay.y + i * drawer_h + 2  # 2mm gap below
+                    front_h = drawer_h - 4            # 2mm gap top + bottom
+                    counter[0] += 1
+                    parts.append(
+                        Part(
+                            id=f"drawer_front_{counter[0]:03d}",
+                            name=f"Drawer Front {counter[0]}",
+                            kind="drawer_front",
+                            module_id=bay.module_id,
+                            material=mat,
+                            length=front_h,
+                            width=front_length,
+                            thickness=shelf_t,
+                            origin=Vec3(x=bay.x + 2, y=y_pos, z=-shelf_t),
+                            axes=PartAxes(
+                                length_axis="y", width_axis="x", thickness_axis="z"
+                            ),
+                            grain_direction="length",
+                            edge_banding=["front", "back", "left", "right"],
+                        )
                     )
-                )
+            # drawers_no_front: door covers the opening; no drawer_front parts generated
 
     # Vertical dividers between adjacent columns in the same module row
     row_groups: dict[tuple, list[ResolvedBay]] = {}

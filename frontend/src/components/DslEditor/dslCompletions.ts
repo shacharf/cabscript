@@ -7,6 +7,7 @@ const TOP_LEVEL_KEYS = ['use', 'material', 'space', 'cabinet', 'layout', 'doors'
 
 const LAYOUT_VALUES = [
   'drawers 2', 'drawers 3', 'drawers 4', 'drawers 5',
+  'drawers 2 no_front', 'drawers 3 no_front', 'drawers 4 no_front',
   'shelves 2', 'shelves 3', 'shelves 4', 'shelves 5', 'shelves 5 adjustable',
   'hanging rod 900', 'hanging rod 1200', 'hanging rod 1800',
   'storage 300', 'storage 400', 'storage 500',

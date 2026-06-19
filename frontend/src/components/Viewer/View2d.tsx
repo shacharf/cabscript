@@ -10,6 +10,7 @@ const BAY_FILL: Record<string, string> = {
   shoes: 'rgba(60,180,110,0.18)',
   storage: 'rgba(120,130,160,0.15)',
   drawers: 'rgba(150,90,200,0.18)',
+  drawers_no_front: 'rgba(150,90,200,0.10)',
   hooks: 'rgba(200,170,60,0.18)',
   empty: 'rgba(255,255,255,0.04)',
 };
@@ -83,11 +84,13 @@ function drawProject(
     hitRegions.push({ kind: 'bay', id: bay.id, x: bx, y: by, w: bw, h: bh });
 
     // Drawer divisions
-    if (bay.function.kind === 'drawers') {
+    if (bay.function.kind === 'drawers' || bay.function.kind === 'drawers_no_front') {
+      const noFront = bay.function.kind === 'drawers_no_front';
       const count = (bay.function.params.count as number) ?? 3;
       const drawerH = bh / count;
       ctx.strokeStyle = 'rgba(180,130,240,0.5)';
       ctx.lineWidth = 1;
+      if (noFront) ctx.setLineDash([4, 4]);
       for (let i = 1; i < count; i++) {
         const ly = by + i * drawerH;
         ctx.beginPath();
@@ -95,13 +98,16 @@ function drawProject(
         ctx.lineTo(bx + bw - 2, ly);
         ctx.stroke();
       }
-      // Handle indicators
-      const handleW = Math.min(40, bw * 0.35);
-      const handleH = Math.max(2, drawerH * 0.1);
-      ctx.fillStyle = 'rgba(180,130,240,0.4)';
-      for (let i = 0; i < count; i++) {
-        const centerY = by + (i + 0.5) * drawerH;
-        ctx.fillRect(bx + (bw - handleW) / 2, centerY - handleH / 2, handleW, handleH);
+      ctx.setLineDash([]);
+      if (!noFront) {
+        // Handle indicators — omitted for no_front since door hides the drawer faces
+        const handleW = Math.min(40, bw * 0.35);
+        const handleH = Math.max(2, drawerH * 0.1);
+        ctx.fillStyle = 'rgba(180,130,240,0.4)';
+        for (let i = 0; i < count; i++) {
+          const centerY = by + (i + 0.5) * drawerH;
+          ctx.fillRect(bx + (bw - handleW) / 2, centerY - handleH / 2, handleW, handleH);
+        }
       }
     }
   }

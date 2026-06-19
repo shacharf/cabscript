@@ -39,6 +39,12 @@ def parse_bay_function(text: str) -> BayFunction:
     if m:
         return BayFunction(kind="storage")
 
+    # drawers [count] no_front
+    m = re.match(r"^drawers(?:\s+(\d+))?\s+no_front$", text)
+    if m:
+        params: dict[str, Any] = {"count": int(m.group(1))} if m.group(1) else {}
+        return BayFunction(kind="drawers_no_front", params=params)
+
     # drawers [count]
     m = re.match(r"^drawers(?:\s+(\d+))?$", text)
     if m:
