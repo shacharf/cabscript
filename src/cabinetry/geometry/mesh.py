@@ -14,7 +14,11 @@ def box_mesh_for_part(part: Part, color: tuple[int, int, int, int]) -> trimesh.T
 
     cx = part.origin.x + sx / 2
     cy = part.origin.y + sy / 2
-    cz = part.origin.z + sz / 2
+    # Reflect the depth axis: the model authors the cabinet opening at -Z, which
+    # makes the (X-right, Y-up) front view left-handed and renders mirrored in the
+    # right-handed glTF/three.js frame. Negating the box center (positions only,
+    # so per-box normals stay outward) flips the front to +Z and fixes the mirror.
+    cz = -(part.origin.z + sz / 2)
     mesh.apply_translation([cx, cy, cz])
 
     face_count = len(mesh.faces)

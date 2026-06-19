@@ -1,5 +1,9 @@
 from cabinetry.compiler.compile import compile_dsl
-from cabinetry.outputs.cutlist import generate_cutlist, cutlist_to_csv
+from cabinetry.outputs.cutlist import (
+    generate_cutlist,
+    cutlist_to_csv,
+    board_cutlist_to_csv,
+)
 
 DSL = """
 use: euro_builtin_v1
@@ -41,3 +45,18 @@ def test_cutlist_csv():
     lines = csv_str.strip().split("\n")
     assert lines[0].startswith("quantity")
     assert len(lines) > 1
+
+
+def test_board_cutlist_formica_side_from_edge_banding():
+    _, project = compile_dsl(DSL)
+    items = generate_cutlist(project)
+    csv_str = board_cutlist_to_csv(items)
+    lines = csv_str.strip().split("\n")
+    header = lines[0].split(",")
+    assert header[0] == "label"
+    assert "formica_side" in header
+    formica_idx = header.index("formica_side")
+    # The board cut-list formica_side column must equal the joined edge_banding.
+    expected = {"|".join(i.edge_banding) for i in items}
+    actual = {line.split(",")[formica_idx] for line in lines[1:]}
+    assert actual <= expected

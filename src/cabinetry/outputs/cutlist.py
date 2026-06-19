@@ -90,3 +90,41 @@ def cutlist_to_csv(items: list[CutListItem]) -> str:
             ]
         )
     return output.getvalue()
+
+
+def board_cutlist_to_csv(items: list[CutListItem]) -> str:
+    """Shop-facing board cut-list: label, dimensions, and formica (edge-banding) side.
+
+    ``formica_side`` is the joined ``edge_banding`` edges (e.g. ``front|left``);
+    ``width``/``height`` are the two panel-face dimensions and ``thickness`` the third.
+    """
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(
+        [
+            "label",
+            "width",
+            "height",
+            "thickness",
+            "material",
+            "quantity",
+            "formica_side",
+            "grain_direction",
+            "part_ids",
+        ]
+    )
+    for item in items:
+        writer.writerow(
+            [
+                item.name,
+                item.width,
+                item.length,
+                item.thickness,
+                item.material,
+                item.quantity,
+                "|".join(item.edge_banding),
+                item.grain_direction,
+                "|".join(item.part_ids),
+            ]
+        )
+    return output.getvalue()

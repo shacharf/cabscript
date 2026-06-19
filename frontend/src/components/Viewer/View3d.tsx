@@ -110,7 +110,7 @@ export default function View3d() {
         camera.position.set(
           center.x + dist * 0.6,
           center.y + dist * 0.5,
-          center.z - dist * 0.9,
+          center.z + dist * 0.9,
         );
         controls.target.copy(center);
         controls.update();

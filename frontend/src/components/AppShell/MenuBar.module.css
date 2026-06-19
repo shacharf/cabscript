@@ -54,3 +54,11 @@
 .dim {
   color: var(--text-muted);
 }
+
+.settingsWrap {
+  position: relative;
+}
+
+.settingsActive {
+  color: var(--accent) !important;
+}

@@ -1,5 +1,8 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { useStore } from '../../store/useStore';
+import { apiExportZip } from '../../api/client';
+import { useSettings } from '../../store/useSettings';
+import SettingsPopover from './SettingsPopover';
 import styles from './MenuBar.module.css';
 
 export default function MenuBar() {
@@ -10,6 +13,10 @@ export default function MenuBar() {
   const loadFile = useStore((s) => s.loadFile);
   const newProject = useStore((s) => s.newProject);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [exporting, setExporting] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const { settings, setSettings } = useSettings();
+  const settingsBtnRef = useRef<HTMLDivElement>(null);
 
   function handleSave() {
     const blob = new Blob([dslText], { type: 'text/yaml' });
@@ -18,6 +25,22 @@ export default function MenuBar() {
     a.download = fileName ?? 'cabinet.yaml';
     a.click();
     URL.revokeObjectURL(a.href);
+  }
+
+  async function handleExport() {
+    setExporting(true);
+    try {
+      const blob = await apiExportZip(dslText, settings);
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = (fileName?.replace(/\.ya?ml$/, '') ?? 'cabinet') + '-export.zip';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } catch (err) {
+      alert(`Export failed: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setExporting(false);
+    }
   }
 
   function handleOpen() {
@@ -62,6 +85,26 @@ export default function MenuBar() {
       <button className="ghost" onClick={handleSave}>
         Save{isDirty ? ' *' : ''}
       </button>
+      <button className="ghost" onClick={handleExport} disabled={exporting}>
+        {exporting ? 'Exporting…' : 'Export'}
+      </button>
+      <div className={styles.sep} />
+      <div ref={settingsBtnRef} className={styles.settingsWrap}>
+        <button
+          className={`ghost ${showSettings ? styles.settingsActive : ''}`}
+          onClick={() => setShowSettings((v) => !v)}
+          title="Export settings"
+        >
+          ⚙
+        </button>
+        {showSettings && (
+          <SettingsPopover
+            settings={settings}
+            onChange={setSettings}
+            onClose={() => setShowSettings(false)}
+          />
+        )}
+      </div>
       <div className={styles.spacer} />
       <span className={styles.filename}>{fileName}</span>
       {statusLabel && <span className={`${styles.status} ${statusClass}`}>{statusLabel}</span>}

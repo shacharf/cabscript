@@ -1,3 +1,6 @@
+import io
+import zipfile
+
 import pytest
 from fastapi.testclient import TestClient
 from cabinetry.app.main import app
@@ -46,6 +49,17 @@ def test_cutlist():
     data = resp.json()
     assert "items" in data
     assert len(data["items"]) > 0
+
+
+def test_export_zip():
+    resp = client.post("/api/export.zip", json={"dsl": SIMPLE_DSL})
+    assert resp.status_code == 200
+    assert resp.headers["content-type"] == "application/zip"
+    with zipfile.ZipFile(io.BytesIO(resp.content)) as zf:
+        names = zf.namelist()
+        assert "cut-list.csv" in names
+        assert "cut-plan.csv" in names
+        assert any(n.startswith("boards/") and n.endswith(".svg") for n in names)
 
 
 def test_stdlib():

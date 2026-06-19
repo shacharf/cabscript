@@ -6,6 +6,7 @@ from ..model.validation import ValidationMessage
 from ..compiler.compile import compile_dsl
 from ..geometry.export import export_glb
 from ..outputs.cutlist import generate_cutlist, cutlist_to_json, cutlist_to_csv
+from ..outputs.export_bundle import build_export_zip
 from ..stdlib.loader import StdLib
 
 router = APIRouter()
@@ -14,6 +15,15 @@ _stdlib = StdLib()
 
 class DslRequest(BaseModel):
     dsl: str
+
+
+class ExportSettings(BaseModel):
+    ignore_grain: bool = False
+
+
+class ExportRequest(BaseModel):
+    dsl: str
+    settings: ExportSettings = ExportSettings()
 
 
 class CompileResponse(BaseModel):
@@ -62,6 +72,19 @@ def cutlist_endpoint(req: DslRequest) -> dict:
         "csv": cutlist_to_csv(items),
         "items": [item.model_dump() for item in items],
     }
+
+
+@router.post("/api/export.zip")
+def export_zip_endpoint(req: ExportRequest) -> Response:
+    _, project = compile_dsl(req.dsl)
+    zip_bytes = build_export_zip(project, _stdlib, ignore_grain=req.settings.ignore_grain)
+    return Response(
+        content=zip_bytes,
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": "attachment; filename=cabinet-export.zip"
+        },
+    )
 
 
 @router.get("/api/stdlib")
