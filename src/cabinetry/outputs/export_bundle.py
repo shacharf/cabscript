@@ -70,5 +70,5 @@ def build_export_zip(
         zf.writestr("summary.txt", _summary_txt(boards))
         for board in boards:
             zf.writestr(f"boards/board_{board.index:02d}.svg", board_to_svg(board))
-        zf.writestr("index.html", build_export_html(items, boards, cut_plan))
+        zf.writestr("index.html", build_export_html(items, boards, cut_plan, project))
     return buffer.getvalue()

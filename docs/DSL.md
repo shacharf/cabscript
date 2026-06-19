@@ -257,6 +257,27 @@ doors:
   style: slab
 ```
 
+**Spanning a single door across multiple modules**
+
+Use `span` with a list of module IDs to generate one door (or pair) covering their combined height:
+
+```yaml
+doors:
+  span: [drawers_unit_bottom, drawers_unit_top, hanging]
+  style: slab
+  hinges: concealed
+```
+
+Modules listed in `span` are excluded from per-module door generation. For multiple independent span groups, use a list of lists:
+
+```yaml
+doors:
+  span:
+    - [lower_left, upper_left]
+    - [lower_right, upper_right]
+  style: slab
+```
+
 ---
 
 ### `finish`
