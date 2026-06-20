@@ -89,7 +89,7 @@ jobs:
 
       - name: Rename artifact (Windows)
         if: runner.os == 'Windows'
-        run: Rename-Item dist\cabscript.exe dist\${{ matrix.artifact }}
+        run: Rename-Item dist\cabscript.exe -NewName ${{ matrix.artifact }}
         shell: pwsh
 
       # ── Upload to GitHub Release ────────────────────────────────────────
