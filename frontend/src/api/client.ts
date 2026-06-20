@@ -58,6 +58,21 @@ export async function apiExportZip(
   return resp.blob();
 }
 
+export async function apiExportHtml(
+  dsl: string,
+  settings: { ignore_grain: boolean } = { ignore_grain: false },
+): Promise<string> {
+  const resp = await fetch('/api/export.html', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ dsl, settings }),
+  });
+  if (!resp.ok) {
+    throw new ApiError(resp.status, 'Preview failed');
+  }
+  return resp.text();
+}
+
 export async function apiStdlib(): Promise<StdLibData> {
   const resp = await fetch('/api/stdlib');
   if (!resp.ok) throw new ApiError(resp.status, 'Failed to load stdlib');

@@ -1,8 +1,9 @@
 import { useRef, useState } from 'react';
 import { useStore } from '../../store/useStore';
-import { apiExportZip } from '../../api/client';
+import { apiExportZip, apiExportHtml } from '../../api/client';
 import { useSettings } from '../../store/useSettings';
 import SettingsPopover from './SettingsPopover';
+import PreviewModal from './PreviewModal';
 import styles from './MenuBar.module.css';
 
 export default function MenuBar() {
@@ -15,6 +16,8 @@ export default function MenuBar() {
   const newProject = useStore((s) => s.newProject);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [exporting, setExporting] = useState(false);
+  const [previewing, setPreviewing] = useState(false);
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const { settings, setSettings } = useSettings();
   const settingsBtnRef = useRef<HTMLDivElement>(null);
@@ -26,6 +29,18 @@ export default function MenuBar() {
     a.download = fileName ?? 'cabinet.yaml';
     a.click();
     URL.revokeObjectURL(a.href);
+  }
+
+  async function handlePreview() {
+    setPreviewing(true);
+    try {
+      const html = await apiExportHtml(dslText, settings);
+      setPreviewHtml(html);
+    } catch (err) {
+      alert(`Preview failed: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setPreviewing(false);
+    }
   }
 
   async function handleExport() {
@@ -87,6 +102,9 @@ export default function MenuBar() {
       <button className="ghost" onClick={handleSave}>
         Save{isDirty ? ' *' : ''}
       </button>
+      <button className="ghost" onClick={handlePreview} disabled={previewing}>
+        {previewing ? 'Loading…' : 'Preview'}
+      </button>
       <button className="ghost" onClick={handleExport} disabled={exporting}>
         {exporting ? 'Exporting…' : 'Export'}
       </button>
@@ -117,6 +135,9 @@ export default function MenuBar() {
         style={{ display: 'none' }}
         onChange={handleFileChange}
       />
+      {previewHtml && (
+        <PreviewModal html={previewHtml} onClose={() => setPreviewHtml(null)} />
+      )}
     </div>
   );
 }

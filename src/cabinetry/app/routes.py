@@ -93,6 +93,33 @@ def export_zip_endpoint(req: ExportRequest) -> Response:
     )
 
 
+@router.post("/api/export.html")
+def export_html_endpoint(req: ExportRequest) -> Response:
+    from ..outputs.cutlist import board_cutlist_to_csv
+    from ..outputs.export_html import build_export_html
+    from ..outputs.nesting import nest_parts
+    import csv, io
+
+    _, project = compile_dsl(req.dsl)
+    items = generate_cutlist(project)
+    boards = nest_parts(project, _stdlib, ignore_grain=req.settings.ignore_grain)
+
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(["board_index", "label", "part_id", "x", "y", "w", "h", "rotated", "formica_side"])
+    for board in boards:
+        for p in board.placements:
+            writer.writerow([
+                board.index, p.label, p.part_id,
+                round(p.x, 1), round(p.y, 1), round(p.w, 1), round(p.h, 1),
+                "yes" if p.rotated else "no", p.formica_side,
+            ])
+    cut_plan_csv = buf.getvalue()
+
+    html = build_export_html(items, boards, cut_plan_csv, project)
+    return Response(content=html, media_type="text/html")
+
+
 @router.get("/api/stdlib")
 def stdlib_endpoint() -> dict:
     return {
