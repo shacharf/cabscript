@@ -2,6 +2,7 @@
 
 A cabinet design tool that compiles a compact YAML DSL into a 3D model, cut list, and parts list. Includes a React-based browser UI.
 
+![main screen image](docs/images/main_screen.png)
 ## Getting started
 
 ### 1. Download and run
