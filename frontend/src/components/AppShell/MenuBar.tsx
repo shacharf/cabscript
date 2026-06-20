@@ -10,6 +10,7 @@ export default function MenuBar() {
   const dslText = useStore((s) => s.dslText);
   const isDirty = useStore((s) => s.isDirty);
   const compileStatus = useStore((s) => s.compileStatus);
+  const version = useStore((s) => s.version);
   const loadFile = useStore((s) => s.loadFile);
   const newProject = useStore((s) => s.newProject);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -75,6 +76,7 @@ export default function MenuBar() {
   return (
     <div className={styles.bar}>
       <span className={styles.brand}>Cabinet</span>
+      {version && <span className={styles.version}>v{version}</span>}
       <div className={styles.sep} />
       <button className="ghost" onClick={newProject}>
         New

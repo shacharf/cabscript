@@ -2,6 +2,56 @@
 
 A cabinet design tool that compiles a compact YAML DSL into a 3D model, cut list, and parts list. Includes a React-based browser UI.
 
+## Getting started
+
+### 1. Download and run
+
+Download the latest binary for your platform from the [Releases page](../../releases/latest):
+
+| Platform | File |
+|---|---|
+| macOS (Apple Silicon) | `cabscript-macos-arm.dmg` |
+| macOS (Intel) | `cabscript-macos-intel.dmg` |
+| Windows 11 | `cabscript-win-x64.exe` |
+| Linux (x64) | `cabscript-linux-x64` |
+
+**macOS:** Mount the DMG and double-click the app. On first launch, right-click → **Open** to bypass Gatekeeper (unsigned binary warning).
+
+**Windows:** Run the `.exe`. If Windows SmartScreen blocks it, click **More info → Run anyway**.
+
+**Linux:**
+```bash
+chmod +x cabscript-linux-x64
+./cabscript-linux-x64
+```
+
+The app starts a local server and opens your browser at `http://localhost:8765`. Generated files (exports, cut lists) are saved to `~/.cabscript/` by default. Override with the `CABSCRIPT_ROOT` environment variable.
+
+### 2. Create a design with an LLM
+
+Copy [DSL.md](docs/DSL.md) to your clipboard and write a prompt like:
+
+```txt
+given the following DSL definition, write me a script that defines a 200 x 80 x 40 cm cabinet.
+- top shelf 40cm
+- hanging region 100cm
+- The bottom is split to 2 shelves at the bottom on the left and 2 drawers on the right.
+
+<Paste the DSL.md here>
+```
+
+
+## Releasing a new version
+
+1. Update `version` in `pyproject.toml` (e.g. `0.1.0` → `0.2.0`)
+2. Commit and tag:
+   ```bash
+   git commit -am "chore: bump version to 0.2.0"
+   git tag v0.2.0
+   git push && git push --tags
+   ```
+3. GitHub Actions automatically builds binaries for all 4 platforms and publishes a GitHub Release with the assets attached. No further manual steps needed.
+
 ## Requirements
 
 - Python 3.12+

@@ -17,6 +17,13 @@
   margin-right: 4px;
 }
 
+.version {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  margin-right: 4px;
+}
+
 .sep {
   width: 1px;
   height: 18px;

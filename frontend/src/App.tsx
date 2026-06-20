@@ -6,10 +6,12 @@ import AppShell from './components/AppShell/AppShell';
 export default function App() {
   const fileName = useStore((s) => s.fileName);
   const loadStdlib = useStore((s) => s.loadStdlib);
+  const loadVersion = useStore((s) => s.loadVersion);
 
   useEffect(() => {
     loadStdlib();
-  }, [loadStdlib]);
+    loadVersion();
+  }, [loadStdlib, loadVersion]);
 
   if (fileName === null) {
     return <StartScreen />;

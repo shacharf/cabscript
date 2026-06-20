@@ -1,0 +1,98 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact: cabscript-linux-x64
+            binary: cabscript
+          - os: windows-latest
+            artifact: cabscript-win-x64.exe
+            binary: cabscript.exe
+          - os: macos-latest
+            arch: intel
+            artifact: cabscript-macos-intel.dmg
+            binary: cabscript
+          - os: macos-14
+            arch: arm
+            artifact: cabscript-macos-arm.dmg
+            binary: cabscript
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Install dependencies
+        run: uv sync --all-extras
+
+      - name: Install PyInstaller
+        run: uv pip install pyinstaller
+
+      - name: Build binary
+        run: uv run pyinstaller cabinet.spec
+
+      # ── macOS: wrap in DMG ──────────────────────────────────────────────
+      - name: Install create-dmg (macOS)
+        if: runner.os == 'macOS'
+        run: brew install create-dmg
+
+      - name: Create DMG (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          mkdir -p dist/dmg
+          cp dist/cabscript dist/dmg/
+          create-dmg \
+            --volname "CabScript" \
+            --window-size 400 200 \
+            --icon-size 100 \
+            --hide-extension "cabscript" \
+            "dist/${{ matrix.artifact }}" \
+            "dist/dmg/" || true
+          # create-dmg exits 1 if no DS_Store; the DMG is still created
+
+      # ── Linux / Windows: rename for clarity ────────────────────────────
+      - name: Rename artifact (Linux)
+        if: runner.os == 'Linux'
+        run: mv dist/cabscript dist/${{ matrix.artifact }}
+
+      - name: Rename artifact (Windows)
+        if: runner.os == 'Windows'
+        run: Rename-Item dist\cabscript.exe dist\${{ matrix.artifact }}
+        shell: pwsh
+
+      # ── Upload to GitHub Release ────────────────────────────────────────
+      - name: Upload release asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/${{ matrix.artifact }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

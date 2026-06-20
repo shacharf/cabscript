@@ -8,3 +8,7 @@
 frontend/node_modules/
 src/cabinetry/app/static/assets/
 
+# PyInstaller build artifacts
+dist/
+build/
+

@@ -1,0 +1,19 @@
+import threading
+import webbrowser
+
+import uvicorn
+
+PORT = 8765
+
+
+def _open_browser() -> None:
+    webbrowser.open(f"http://localhost:{PORT}")
+
+
+def main() -> None:
+    threading.Timer(1.5, _open_browser).start()
+    uvicorn.run("cabinetry.app.main:app", host="127.0.0.1", port=PORT)
+
+
+if __name__ == "__main__":
+    main()

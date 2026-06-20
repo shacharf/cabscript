@@ -63,3 +63,10 @@ export async function apiStdlib(): Promise<StdLibData> {
   if (!resp.ok) throw new ApiError(resp.status, 'Failed to load stdlib');
   return resp.json() as Promise<StdLibData>;
 }
+
+export async function apiVersion(): Promise<string> {
+  const resp = await fetch('/api/version');
+  if (!resp.ok) return '';
+  const data = (await resp.json()) as { version: string };
+  return data.version;
+}

@@ -5,7 +5,7 @@ import type {
   CutlistItem,
   StdLibData,
 } from '../types/cabinet';
-import { apiCompile, apiRenderGlb, apiCutlist, apiStdlib, ApiError } from '../api/client';
+import { apiCompile, apiRenderGlb, apiCutlist, apiStdlib, apiVersion, ApiError } from '../api/client';
 
 export const DEFAULT_DSL = `use: euro_builtin_v1
 material: plywood_18
@@ -60,6 +60,7 @@ interface CabinetStore {
   selectedPartId: string | null;
 
   stdlib: StdLibData | null;
+  version: string;
 
   setDslText: (text: string) => void;
   setActiveView: (v: '2d' | '3d') => void;
@@ -73,6 +74,7 @@ interface CabinetStore {
   compile: () => Promise<void>;
   render3d: () => Promise<void>;
   loadStdlib: () => Promise<void>;
+  loadVersion: () => Promise<void>;
 }
 
 export const useStore = create<CabinetStore>((set, get) => ({
@@ -95,6 +97,7 @@ export const useStore = create<CabinetStore>((set, get) => ({
   selectedPartId: null,
 
   stdlib: null,
+  version: '',
 
   setDslText: (text) => set({ dslText: text, isDirty: true }),
 
@@ -186,5 +189,10 @@ export const useStore = create<CabinetStore>((set, get) => ({
         },
       });
     }
+  },
+
+  loadVersion: async () => {
+    const v = await apiVersion();
+    if (v) set({ version: v });
   },
 }));

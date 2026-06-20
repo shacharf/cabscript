@@ -1,3 +1,4 @@
+from importlib.metadata import version as pkg_version
 from fastapi import APIRouter
 from fastapi.responses import Response
 from pydantic import BaseModel
@@ -35,6 +36,11 @@ class CompileResponse(BaseModel):
 @router.get("/api/health")
 def health() -> dict:
     return {"status": "ok"}
+
+
+@router.get("/api/version")
+def version() -> dict:
+    return {"version": pkg_version("cabinetry")}
 
 
 @router.post("/api/parse")
