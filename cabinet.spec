@@ -21,6 +21,7 @@ a = Analysis(
         "uvicorn.protocols.http.h11_impl",
         "uvicorn.lifespan.on",
         "anyio._backends._asyncio",
+        "cabinetry.app.main",
         "cabinetry.app.routes",
         "cabinetry.dsl",
         "cabinetry.compiler",
