@@ -1,5 +1,6 @@
 import { useRef, useEffect, useCallback } from 'react';
 import { useStore } from '../../store/useStore';
+import { useSettings } from '../../store/useSettings';
 import type { ResolvedProject, Part } from '../../types/cabinet';
 
 const BG = '#050a18';
@@ -43,6 +44,7 @@ function drawProject(
   project: ResolvedProject,
   doorsVisible: boolean,
   showDimensions: boolean,
+  dimsFromFloor: boolean,
   hitRegions: HitRegion[],
   transform: Transform,
 ) {
@@ -56,7 +58,7 @@ function drawProject(
   ctx.fillStyle = BG;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  const PAD_LEFT = 60, PAD_RIGHT = showDimensions ? 60 : 30, PAD_TOP = 30, PAD_BOTTOM = 50;
+  const PAD_LEFT = dimsFromFloor ? 90 : 60, PAD_RIGHT = showDimensions ? 60 : 30, PAD_TOP = 30, PAD_BOTTOM = 50;
   const drawW = canvas.width - PAD_LEFT - PAD_RIGHT;
   const drawH = canvas.height - PAD_TOP - PAD_BOTTOM;
 
@@ -265,6 +267,32 @@ function drawProject(
   ctx.fillText(`${Math.round(project.height)} mm`, 0, 0);
   ctx.restore();
 
+  // From-floor dimension ticks (left side)
+  if (dimsFromFloor) {
+    const boundaries = new Set<number>();
+    for (const bay of project.bays) {
+      boundaries.add(bay.y);
+      boundaries.add(bay.y + bay.height);
+    }
+    const tickX = cx(0) - 8;
+    const labelX = cx(0) - 12;
+    ctx.strokeStyle = 'rgba(100,180,255,0.3)';
+    ctx.fillStyle = 'rgba(100,180,255,0.75)';
+    ctx.lineWidth = 0.5;
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    ctx.font = '9px system-ui';
+    for (const y of boundaries) {
+      if (y === 0 || y === project.height) continue;
+      const canvasY = cy(y);
+      ctx.beginPath();
+      ctx.moveTo(cx(0) - 2, canvasY);
+      ctx.lineTo(tickX, canvasY);
+      ctx.stroke();
+      ctx.fillText(`${Math.round(y)}`, labelX, canvasY);
+    }
+  }
+
   // Module split lines
   ctx.setLineDash([6, 4]);
   ctx.strokeStyle = 'rgba(180,200,255,0.25)';
@@ -301,6 +329,8 @@ export default function View2d() {
   const showDimensions = useStore((s) => s.showDimensions);
   const selectBay = useStore((s) => s.selectBay);
   const selectPart = useStore((s) => s.selectPart);
+  const { settings } = useSettings();
+  const dimsFromFloor = settings.dims_from_floor;
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -312,11 +342,11 @@ export default function View2d() {
     const canvas = canvasRef.current;
     if (!canvas) return;
     if (project) {
-      drawProject(canvas, project, doorsVisible, showDimensions, hitRegionsRef.current, transformRef.current);
+      drawProject(canvas, project, doorsVisible, showDimensions, dimsFromFloor, hitRegionsRef.current, transformRef.current);
     } else {
       drawEmpty(canvas);
     }
-  }, [project, doorsVisible, showDimensions]);
+  }, [project, doorsVisible, showDimensions, dimsFromFloor]);
 
   // Keep ref in sync with latest closure
   useEffect(() => { redrawRef.current = redraw; }, [redraw]);

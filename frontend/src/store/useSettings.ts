@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 
 export interface ExportSettings {
   ignore_grain: boolean;
+  dims_from_floor: boolean;
 }
 
 const KEY = 'cabinet-export-settings';
@@ -9,9 +10,9 @@ const KEY = 'cabinet-export-settings';
 function load(): ExportSettings {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) return { ignore_grain: false, ...JSON.parse(raw) };
+    if (raw) return { ignore_grain: false, dims_from_floor: false, ...JSON.parse(raw) };
   } catch {}
-  return { ignore_grain: false };
+  return { ignore_grain: false, dims_from_floor: false };
 }
 
 function save(s: ExportSettings) {

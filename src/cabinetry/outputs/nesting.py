@@ -146,6 +146,32 @@ def _orient(rect: _PartRect, board_w: float, board_h: float) -> tuple[float, flo
     return candidates[0]
 
 
+def _free_orients(
+    rect: _PartRect, board_w: float, board_h: float
+) -> list[tuple[float, float, bool]]:
+    """All orientations valid for grain-free placement on this board size.
+
+    For fixed-grain parts returns the single required orientation.  For
+    grain-free parts returns both orientations that physically fit the board,
+    sorted so the one that yields the most pieces per board-width row comes
+    first (better global utilisation).
+    """
+    length, width = rect.length, rect.width
+    if rect.grain == "length":
+        return [(length, width, False)]
+    if rect.grain == "width":
+        return [(width, length, False)]
+    candidates: list[tuple[float, float, bool]] = []
+    if length <= board_w + 1e-6 and width <= board_h + 1e-6:
+        candidates.append((length, width, False))
+    if (width, length) != (length, width) and width <= board_w + 1e-6 and length <= board_h + 1e-6:
+        candidates.append((width, length, True))
+    if not candidates:
+        return [(length, width, False)]
+    # Prefer the orientation that fits more pieces across the board width.
+    return sorted(candidates, key=lambda c: -(board_w // (c[0] + KERF)))
+
+
 def _pack_group(
     material: str,
     thickness: float,
@@ -176,38 +202,49 @@ def _pack_group(
         return board
 
     for rect in ordered:
-        w, h, rotated = _orient(rect, board_w, board_h)
-        pw, ph = w + KERF, h + KERF  # footprint including kerf gutter
+        orients = _free_orients(rect, board_w, board_h)
         placed = False
 
-        # Try existing shelves (first fit).
+        # Try existing shelves (first fit) — try all valid orientations.
         for board, shelf in shelves:
-            if shelf.cursor_x + pw <= board_w + 1e-6 and ph <= shelf.height + 1e-6:
-                board.placements.append(
-                    PlacedPart(
-                        part_id=rect.part_id,
-                        label=rect.label,
-                        x=shelf.cursor_x,
-                        y=shelf.y,
-                        w=w,
-                        h=h,
-                        rotated=rotated,
-                        formica_side=rect.formica_side,
+            for w, h, rotated in orients:
+                pw, ph = w + KERF, h + KERF
+                if shelf.cursor_x + pw <= board_w + 1e-6 and ph <= shelf.height + 1e-6:
+                    board.placements.append(
+                        PlacedPart(
+                            part_id=rect.part_id,
+                            label=rect.label,
+                            x=shelf.cursor_x,
+                            y=shelf.y,
+                            w=w,
+                            h=h,
+                            rotated=rotated,
+                            formica_side=rect.formica_side,
+                        )
                     )
-                )
-                shelf.cursor_x += pw
-                placed = True
+                    shelf.cursor_x += pw
+                    placed = True
+                    break
+            if placed:
                 break
         if placed:
             continue
 
-        # Open a new shelf on an existing board if it fits vertically.
+        # Open a new shelf on an existing board — pick orientation that fits
+        # the most pieces per row (best utilisation of the new shelf).
         for board in boards:
             board_used_h = max(
                 (s.y + s.height for b, s in shelves if b is board),
                 default=0.0,
             )
-            if board_used_h + ph <= board_h + 1e-6 and pw <= board_w + 1e-6:
+            best: tuple[float, float, bool, float, float] | None = None
+            for w, h, rotated in orients:
+                pw, ph = w + KERF, h + KERF
+                if board_used_h + ph <= board_h + 1e-6 and pw <= board_w + 1e-6:
+                    best = (w, h, rotated, pw, ph)
+                    break  # orients already sorted best-first
+            if best is not None:
+                w, h, rotated, pw, ph = best
                 shelf = _Shelf(y=board_used_h, height=ph, cursor_x=pw)
                 board.placements.append(
                     PlacedPart(
@@ -227,7 +264,9 @@ def _pack_group(
         if placed:
             continue
 
-        # New board, new shelf.
+        # New board, new shelf — same orientation preference.
+        w, h, rotated = orients[0]
+        pw, ph = w + KERF, h + KERF
         board = new_board()
         shelf = _Shelf(y=0.0, height=ph, cursor_x=pw)
         board.placements.append(

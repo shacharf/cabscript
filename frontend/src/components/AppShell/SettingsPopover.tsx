@@ -33,6 +33,17 @@ export default function SettingsPopover({ settings, onChange, onClose }: Props) 
           <small>Allow parts to rotate freely for a tighter cut plan. Parts may end up cross-grain.</small>
         </span>
       </label>
+      <label className={styles.row}>
+        <input
+          type="checkbox"
+          checked={settings.dims_from_floor}
+          onChange={(e) => onChange({ dims_from_floor: e.target.checked })}
+        />
+        <span>
+          <strong>Dimensions from floor</strong>
+          <small>Show cumulative heights from the floor on the left side of the 2D view.</small>
+        </span>
+      </label>
     </div>
   );
 }
