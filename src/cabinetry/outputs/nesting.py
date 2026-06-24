@@ -1,20 +1,24 @@
 """Saw-cut nesting: pack cabinet parts onto stock boards.
 
 Groups parts by (material, thickness) since parts of differing thickness cannot
-share a board, then runs a shelf-based First-Fit-Decreasing guillotine packing
-for each group. Parts that carry a grain direction keep their orientation; parts
-with no grain may be rotated 90 degrees to fit.
+share a board, then uses opcut's guillotine optimizer to minimise the number of
+boards required for each group.  Parts that carry a grain direction keep their
+orientation; parts with no grain may be rotated 90 degrees.
 """
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
+
+import opcut.common as _oc
+from opcut.csp import calculate as _opcut_calculate
 
 from ..model.project import ResolvedProject
 from ..stdlib.loader import StdLib
 
-# Saw blade kerf added as a gutter around every placement (mm).
-KERF = 3.0
+# Saw blade kerf / cut width (mm) used when the material spec has no cut_width.
+KERF = 2.0
 
 # Fallback board size when a material has no max_board (mm).
 DEFAULT_BOARD = (2400.0, 1200.0)
@@ -68,15 +72,6 @@ class Board:
 
 
 @dataclass
-class _Shelf:
-    """A horizontal band on the board into which parts are packed left to right."""
-
-    y: float
-    height: float
-    cursor_x: float = 0.0
-
-
-@dataclass
 class _PartRect:
     part_id: str
     label: str
@@ -90,12 +85,14 @@ class _PartRect:
         return max(self.length, self.width)
 
 
-def _board_size(stdlib: StdLib, material: str) -> tuple[float, float]:
+def _board_size(stdlib: StdLib, material: str) -> tuple[float, float, float]:
+    """Return (board_w, board_h, cut_width) for *material*."""
     try:
         spec = stdlib.get_material(material)
-        return float(spec.max_board.length), float(spec.max_board.width)
+        cut_width = float(getattr(spec, "cut_width", KERF))
+        return float(spec.max_board.length), float(spec.max_board.width), cut_width
     except Exception:
-        return DEFAULT_BOARD
+        return DEFAULT_BOARD[0], DEFAULT_BOARD[1], KERF
 
 
 def _part_rects(
@@ -124,166 +121,95 @@ def _part_rects(
     return groups
 
 
-def _orient(rect: _PartRect, board_w: float, board_h: float) -> tuple[float, float, bool]:
-    """Choose a board-space orientation (w along x, h along y).
-
-    Board grain runs along its length (the x / ``board_w`` axis). A part with a
-    grain direction must keep that edge parallel to the board grain, so its
-    orientation is fixed. Grain-free parts may rotate; we prefer the longer side
-    along x and fall back to a 90° turn only when needed to fit the board height.
-    Returns (w, h, rotated).
-    """
-    length, width = rect.length, rect.width
-    if rect.grain == "length":
-        return length, width, False
-    if rect.grain == "width":
-        return width, length, False
-    # Grain-free: prefer larger x-extent that still fits within the board.
-    candidates = [(length, width, False), (width, length, True)]
-    for w, h, rotated in sorted(candidates, key=lambda c: -c[0]):
-        if w <= board_w + 1e-6 and h <= board_h + 1e-6:
-            return w, h, rotated
-    return candidates[0]
-
-
-def _free_orients(
-    rect: _PartRect, board_w: float, board_h: float
-) -> list[tuple[float, float, bool]]:
-    """All orientations valid for grain-free placement on this board size.
-
-    For fixed-grain parts returns the single required orientation.  For
-    grain-free parts returns both orientations that physically fit the board,
-    sorted so the one that yields the most pieces per board-width row comes
-    first (better global utilisation).
-    """
-    length, width = rect.length, rect.width
-    if rect.grain == "length":
-        return [(length, width, False)]
-    if rect.grain == "width":
-        return [(width, length, False)]
-    candidates: list[tuple[float, float, bool]] = []
-    if length <= board_w + 1e-6 and width <= board_h + 1e-6:
-        candidates.append((length, width, False))
-    if (width, length) != (length, width) and width <= board_w + 1e-6 and length <= board_h + 1e-6:
-        candidates.append((width, length, True))
-    if not candidates:
-        return [(length, width, False)]
-    # Prefer the orientation that fits more pieces across the board width.
-    return sorted(candidates, key=lambda c: -(board_w // (c[0] + KERF)))
-
-
 def _pack_group(
     material: str,
     thickness: float,
     rects: list[_PartRect],
     board_w: float,
     board_h: float,
+    cut_width: float,
     start_index: int,
 ) -> list[Board]:
-    """Shelf-based FFD packing of one (material, thickness) group."""
-    # Largest first so shelves are seeded by the biggest parts.
-    ordered = sorted(rects, key=lambda r: r.long_side, reverse=True)
+    """Pack one (material, thickness) group onto boards using opcut.
 
-    boards: list[Board] = []
-    shelves: list[tuple[Board, _Shelf]] = []
-    index = start_index
+    Tries the fewest panels that the area lower-bound implies, then increments
+    until opcut finds a valid arrangement or every piece gets its own board.
+    """
+    # Build opcut items.  Grain direction fixes can_rotate.
+    # For grain="width" we swap dims so the item's natural orientation places
+    # rect.width along the board's x-axis (matching _orient's original intent).
+    def _item_dims(rect: _PartRect) -> tuple[float, float]:
+        if rect.grain == "width":
+            return rect.width, rect.length  # width along x, not rotatable
+        return rect.length, rect.width      # length along x (default / grain="length")
 
-    def new_board() -> Board:
-        nonlocal index
-        board = Board(
-            index=index,
-            material=material,
-            thickness=thickness,
-            board_w=board_w,
-            board_h=board_h,
+    items = [
+        _oc.Item(
+            id=rect.part_id,
+            width=iw,
+            height=ih,
+            can_rotate=(rect.grain == "none"),
         )
-        boards.append(board)
-        index += 1
-        return board
+        for rect, (iw, ih) in ((r, _item_dims(r)) for r in rects)
+    ]
+    rect_by_id = {r.part_id: r for r in rects}
 
-    for rect in ordered:
-        orients = _free_orients(rect, board_w, board_h)
-        placed = False
+    total_area = sum(iw * ih for _, (iw, ih) in ((r, _item_dims(r)) for r in rects))
+    board_area = board_w * board_h
+    min_panels = max(1, math.ceil(total_area / board_area))
 
-        # Try existing shelves (first fit) — try all valid orientations.
-        for board, shelf in shelves:
-            for w, h, rotated in orients:
-                pw, ph = w + KERF, h + KERF
-                if shelf.cursor_x + pw <= board_w + 1e-6 and ph <= shelf.height + 1e-6:
-                    board.placements.append(
-                        PlacedPart(
-                            part_id=rect.part_id,
-                            label=rect.label,
-                            x=shelf.cursor_x,
-                            y=shelf.y,
-                            w=w,
-                            h=h,
-                            rotated=rotated,
-                            formica_side=rect.formica_side,
-                        )
-                    )
-                    shelf.cursor_x += pw
-                    placed = True
-                    break
-            if placed:
-                break
-        if placed:
+    for n_panels in range(min_panels, len(rects) + 1):
+        panels = [
+            _oc.Panel(id=str(i), width=board_w, height=board_h)
+            for i in range(n_panels)
+        ]
+        params = _oc.Params(cut_width=cut_width, panels=panels, items=items)
+        try:
+            result = _opcut_calculate(params, _oc.Method.FORWARD_GREEDY)
+        except _oc.UnresolvableError:
             continue
 
-        # Open a new shelf on an existing board — pick orientation that fits
-        # the most pieces per row (best utilisation of the new shelf).
-        for board in boards:
-            board_used_h = max(
-                (s.y + s.height for b, s in shelves if b is board),
-                default=0.0,
-            )
-            best: tuple[float, float, bool, float, float] | None = None
-            for w, h, rotated in orients:
-                pw, ph = w + KERF, h + KERF
-                if board_used_h + ph <= board_h + 1e-6 and pw <= board_w + 1e-6:
-                    best = (w, h, rotated, pw, ph)
-                    break  # orients already sorted best-first
-            if best is not None:
-                w, h, rotated, pw, ph = best
-                shelf = _Shelf(y=board_used_h, height=ph, cursor_x=pw)
-                board.placements.append(
-                    PlacedPart(
-                        part_id=rect.part_id,
-                        label=rect.label,
-                        x=0.0,
-                        y=shelf.y,
-                        w=w,
-                        h=h,
-                        rotated=rotated,
-                        formica_side=rect.formica_side,
-                    )
+        # Group placements by panel id (preserving panel order).
+        boards_map: dict[str, Board] = {}
+        for used in result.used:
+            pid = used.panel.id
+            if pid not in boards_map:
+                boards_map[pid] = Board(
+                    index=0,
+                    material=material,
+                    thickness=thickness,
+                    board_w=board_w,
+                    board_h=board_h,
                 )
-                shelves.append((board, shelf))
-                placed = True
-                break
-        if placed:
-            continue
-
-        # New board, new shelf — same orientation preference.
-        w, h, rotated = orients[0]
-        pw, ph = w + KERF, h + KERF
-        board = new_board()
-        shelf = _Shelf(y=0.0, height=ph, cursor_x=pw)
-        board.placements.append(
-            PlacedPart(
-                part_id=rect.part_id,
-                label=rect.label,
-                x=0.0,
-                y=0.0,
-                w=w,
-                h=h,
-                rotated=rotated,
-                formica_side=rect.formica_side,
+            rect = rect_by_id[used.item.id]
+            # Dimensions after opcut rotation: rotate swaps width↔height.
+            if used.rotate:
+                placed_w, placed_h = used.item.height, used.item.width
+            else:
+                placed_w, placed_h = used.item.width, used.item.height
+            boards_map[pid].placements.append(
+                PlacedPart(
+                    part_id=used.item.id,
+                    label=rect.label,
+                    x=used.x,
+                    y=used.y,
+                    w=placed_w,
+                    h=placed_h,
+                    rotated=used.rotate,
+                    formica_side=rect.formica_side,
+                )
             )
-        )
-        shelves.append((board, shelf))
 
-    return boards
+        # Re-index boards sequentially starting from start_index.
+        sorted_boards = sorted(boards_map.items(), key=lambda kv: int(kv[0]))
+        boards = []
+        for i, (_, board) in enumerate(sorted_boards):
+            board.index = start_index + i
+            boards.append(board)
+        return boards
+
+    # Fallback: should never be reached (n_panels == len(rects) always works).
+    raise RuntimeError(f"opcut could not pack {len(rects)} parts onto {len(rects)} boards")
 
 
 def nest_parts(
@@ -302,9 +228,9 @@ def nest_parts(
     all_boards: list[Board] = []
     next_index = 1
     for (material, thickness), rects in sorted(groups.items()):
-        board_w, board_h = _board_size(stdlib, material)
+        board_w, board_h, cut_width = _board_size(stdlib, material)
         boards = _pack_group(
-            material, thickness, rects, board_w, board_h, next_index
+            material, thickness, rects, board_w, board_h, cut_width, next_index
         )
         all_boards.extend(boards)
         next_index += len(boards)
