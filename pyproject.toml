@@ -18,7 +18,7 @@ dependencies = [
   "jinja2",
   "python-multipart",
   "python-dotenv",
-  "opcut",
+  "opcut; sys_platform == 'linux'",
 ]
 
 [project.optional-dependencies]
